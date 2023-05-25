@@ -1,8 +1,8 @@
 mod lexer;
-use lexer::Lexer;
+mod repl;
+
+use repl::Repl;
 
 fn main() {
-    let mut lexer = Lexer::new("test");
-    let first_token = lexer.next_token();
-    println!("first_token: {:?}", first_token);
+    Repl::start();
 }
