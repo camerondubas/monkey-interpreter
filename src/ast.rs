@@ -51,6 +51,7 @@ pub enum Expression {
     Identifier(String),
     IntegerLiteral(u64),
     PrefixExpression(Token, Box<Expression>),
+    InfixExpression(Box<Expression>, Token, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -66,6 +67,22 @@ impl fmt::Display for Expression {
                 };
 
                 write!(f, "({}{})", operator, right)
+            }
+            Expression::InfixExpression(left, operator_token, right) => {
+                let operator = match operator_token {
+                    Token::Plus => "+",
+                    Token::Minus => "-",
+                    Token::Asterisk => "*",
+                    Token::Slash => "/",
+                    Token::Gt => ">",
+                    Token::Lt => "<",
+                    Token::Eq => "==",
+                    Token::NotEq => "!=",
+
+                    _ => panic!("Invalid Infix Token: {:?}", operator_token),
+                };
+
+                write!(f, "({}{}{})", left, operator, right)
             }
         }
     }
