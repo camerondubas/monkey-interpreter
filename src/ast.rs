@@ -49,12 +49,24 @@ impl fmt::Display for Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Identifier(String),
+    IntegerLiteral(u64),
+    PrefixExpression(Token, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expression::Identifier(value) => write!(f, "{}", value),
+            Expression::IntegerLiteral(value) => write!(f, "{}", value),
+            Expression::PrefixExpression(operator_token, right) => {
+                let operator = match operator_token {
+                    Token::BANG => "!",
+                    Token::MINUS => "-",
+                    _ => panic!("Invalid Prefix Token: {:?}", operator_token),
+                };
+
+                write!(f, "({}{})", operator, right)
+            }
         }
     }
 }
