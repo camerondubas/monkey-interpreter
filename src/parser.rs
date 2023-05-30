@@ -50,9 +50,9 @@ impl Parser {
 
     fn prefix_parse_fns(token: &Token) -> Option<PrefixParseFn> {
         match token {
-            Token::IDENT(_) => Some(Parser::parse_identifier),
-            Token::INT(_) => Some(Parser::parse_integer),
-            Token::BANG | Token::MINUS => Some(Parser::parse_prefix_expression),
+            Token::Indentifier(_) => Some(Parser::parse_identifier),
+            Token::Integer(_) => Some(Parser::parse_integer),
+            Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
             _ => None,
         }
     }
@@ -79,7 +79,7 @@ impl Parser {
     pub fn parse_program(&mut self) -> ast::Program {
         let mut program = ast::Program::new();
 
-        while self.current_token != Token::EOF {
+        while self.current_token != Token::Eof {
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(statement),
                 Err(error) => self.errors.push(error),
@@ -93,15 +93,15 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match self.current_token {
-            Token::LET => self.parse_let_statement(),
-            Token::RETURN => self.parse_return_statement(),
+            Token::Let => self.parse_let_statement(),
+            Token::Return => self.parse_return_statement(),
             _ => self.parse_expression_statement(),
         }
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
         let name = match self.peek_token.clone() {
-            Token::IDENT(ident) => {
+            Token::Indentifier(ident) => {
                 self.next_token();
                 ident
             }
@@ -115,12 +115,12 @@ impl Parser {
         };
 
         self.expect_peek(
-            Token::ASSIGN,
-            ParserError::UnexpectedToken(Token::ASSIGN, self.peek_token.clone()),
+            Token::Assign,
+            ParserError::UnexpectedToken(Token::Assign, self.peek_token.clone()),
         );
 
         let identifier = match self.peek_token.clone() {
-            Token::INT(ident) => {
+            Token::Integer(ident) => {
                 self.next_token();
                 ident
             }
@@ -133,7 +133,7 @@ impl Parser {
 
         loop {
             // TODO: We skip everything until a semicolon, until we can parse expressions
-            if self.current_token.eq(&Token::SEMICOLON) {
+            if self.current_token.eq(&Token::Semicolon) {
                 break;
             }
             self.next_token();
@@ -150,7 +150,7 @@ impl Parser {
 
         loop {
             // TODO: We skip everything until a semicolon, until we can parse expressions
-            if self.current_token.eq(&Token::SEMICOLON) {
+            if self.current_token.eq(&Token::Semicolon) {
                 break;
             }
             self.next_token();
@@ -162,7 +162,7 @@ impl Parser {
     fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
         let expression = self.parse_expression(Precedence::Lowest);
 
-        if self.peek_token == Token::SEMICOLON {
+        if self.peek_token == Token::Semicolon {
             let _ = &self.next_token();
         }
 
@@ -182,7 +182,7 @@ impl Parser {
 
     fn parse_identifier(&mut self) -> Result<Expression, ParserError> {
         match &self.current_token {
-            Token::IDENT(value) => Ok(Expression::Identifier(value.to_string())),
+            Token::Indentifier(value) => Ok(Expression::Identifier(value.to_string())),
             _ => Err(ParserError::ExpectedIdentifierToken(
                 self.current_token.clone(),
             )),
@@ -191,7 +191,7 @@ impl Parser {
 
     fn parse_integer(&mut self) -> Result<Expression, ParserError> {
         let result = match &self.current_token {
-            Token::INT(val) => val,
+            Token::Integer(val) => val,
             _ => {
                 return Err(ParserError::ExpectedIntegerToken(
                     self.current_token.clone(),
@@ -258,8 +258,8 @@ mod tests {
         parser.parse_program();
 
         let expected_erors = vec![
-            ParserError::ExpectedIdentifierToken(Token::INT("10".to_string())),
-            ParserError::MissingParsePrefixFunction(Token::ASSIGN), // Temp Until Implemented
+            ParserError::ExpectedIdentifierToken(Token::Integer("10".to_string())),
+            ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
         ];
         assert_eq!(parser.errors, expected_erors);
     }
@@ -275,9 +275,9 @@ mod tests {
         parser.parse_program();
 
         let expected_erors = vec![
-            ParserError::ExpectedIdentifierToken(Token::INT("10".to_string())),
-            ParserError::MissingParsePrefixFunction(Token::ASSIGN), // Temp Until Implemented
-            ParserError::UnexpectedToken(Token::ASSIGN, Token::INT("11".to_string())),
+            ParserError::ExpectedIdentifierToken(Token::Integer("10".to_string())),
+            ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
+            ParserError::UnexpectedToken(Token::Assign, Token::Integer("11".to_string())),
         ];
         assert_eq!(parser.errors, expected_erors);
     }
@@ -294,8 +294,8 @@ mod tests {
         expect_no_errors(&parser);
 
         let expected_statements = vec![
-            Statement::ReturnStatement(Token::RETURN),
-            Statement::ReturnStatement(Token::RETURN),
+            Statement::ReturnStatement(Token::Return),
+            Statement::ReturnStatement(Token::Return),
         ];
         assert_eq!(program.statements, expected_statements);
     }
@@ -311,8 +311,8 @@ mod tests {
         parser.parse_program();
 
         let expected_erors: Vec<ParserError> = vec![
-            ParserError::ExpectedIdentifierToken(Token::ASSIGN),
-            ParserError::ExpectedIdentifierToken(Token::NOT_EQ),
+            ParserError::ExpectedIdentifierToken(Token::Assign),
+            ParserError::ExpectedIdentifierToken(Token::NotEq),
         ];
 
         assert_eq!(parser.errors, expected_erors);
@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_parse_prefix_expression() {
-        let inputs = vec![("!5", Token::BANG, 5), ("-15", Token::MINUS, 15)];
+        let inputs = vec![("!5", Token::Bang, 5), ("-15", Token::Minus, 15)];
 
         for (input, operator, integer_value) in inputs {
             let lexer = Lexer::new(input);

@@ -60,8 +60,8 @@ impl fmt::Display for Expression {
             Expression::IntegerLiteral(value) => write!(f, "{}", value),
             Expression::PrefixExpression(operator_token, right) => {
                 let operator = match operator_token {
-                    Token::BANG => "!",
-                    Token::MINUS => "-",
+                    Token::Bang => "!",
+                    Token::Minus => "-",
                     _ => panic!("Invalid Prefix Token: {:?}", operator_token),
                 };
 
@@ -85,7 +85,7 @@ mod tests {
 
         program
             .statements
-            .push(Statement::ReturnStatement(Token::RETURN));
+            .push(Statement::ReturnStatement(Token::Return));
 
         assert_eq!(program.to_string(), "let myVar = 5;\nreturn (todo);");
     }
