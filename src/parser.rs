@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, Expression, Statement},
+    ast::{self, Expression, Program, Statement},
     lexer::{Lexer, Token},
 };
 
@@ -95,7 +95,7 @@ impl Parser {
     }
 
     pub fn parse_program(&mut self) -> ast::Program {
-        let mut program = ast::Program::new();
+        let mut program = Program::new();
 
         while self.current_token != Token::Eof {
             match self.parse_statement() {
@@ -182,14 +182,9 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
-        let prefix_expression = match Parser::prefix_parse_fns(&self.current_token) {
-            Some(prefix) => prefix,
-            None => {
-                return Err(ParserError::MissingParsePrefixFunction(
-                    self.current_token.clone(),
-                ))
-            }
-        };
+        let prefix_expression = Parser::prefix_parse_fns(&self.current_token).ok_or(
+            ParserError::MissingParsePrefixFunction(self.current_token.clone()),
+        )?;
 
         let mut left_expression = prefix_expression(self);
 
@@ -236,15 +231,11 @@ impl Parser {
 
         self.next_token();
 
-        let right = self.parse_expression(Precedence::Prefix);
-
-        if right.is_err() {
-            return right;
-        }
+        let right = self.parse_expression(Precedence::Prefix)?;
 
         Ok(Expression::PrefixExpression(
             operator.clone(),
-            Box::new(right.unwrap()),
+            Box::new(right),
         ))
     }
 
@@ -258,20 +249,23 @@ impl Parser {
 
         self.next_token();
 
-        let right = self.parse_expression(precedence);
-
-        if right.is_err() {
-            return right;
-        }
+        let right = self.parse_expression(precedence)?;
 
         Ok(Expression::InfixExpression(
             Box::new(left),
             operator,
-            Box::new(right.unwrap()),
+            Box::new(right),
         ))
     }
 
+    fn parse_boolean(&mut self) -> Result<Expression, ParserError> {
+        match &self.current_token {
+            Token::True => Ok(Expression::Boolean(true)),
+            Token::False => Ok(Expression::Boolean(false)),
+            _ => Err(ParserError::ExpectedBoolean(self.current_token.clone())),
+        }
     }
+
     fn peek_precedence(&self) -> Precedence {
         self.get_operator_precedence(self.peek_token.clone())
     }
@@ -326,7 +320,7 @@ mod tests {
         parser.parse_program();
 
         let expected_erors = vec![
-            ParserError::ExpectedIdentifierToken(Token::Integer("10".to_string())),
+            ParserError::ExpectedIdentifier(Token::Integer("10".to_string())),
             ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
         ];
         assert_eq!(parser.errors, expected_erors);
