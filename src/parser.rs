@@ -15,7 +15,7 @@ enum Precedence {
 }
 
 #[derive(Debug, PartialEq)]
-enum ParserError {
+pub enum ParserError {
     ExpectedIdentifierToken(Token),
     UnexpectedToken(Token, Token),
     MissingParsePrefixFunction(Token),
@@ -34,7 +34,7 @@ pub struct Parser {
     current_token: Token,
     peek_token: Token,
 
-    errors: Vec<ParserError>,
+    pub errors: Vec<ParserError>,
 }
 
 impl Parser {

@@ -6,8 +6,10 @@ mod repl;
 use repl::Repl;
 
 fn main() {
-    Repl::start();
+    let mut repl = Repl::new();
+    repl.start();
 
+    // Dummy program to avoid unused code warnings
     let source = "let x = 5;";
     let lexer = lexer::Lexer::new(source);
     let mut parser = parser::Parser::new(lexer);
