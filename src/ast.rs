@@ -24,7 +24,7 @@ impl fmt::Display for Program {
                 .iter()
                 .map(|statement| format!("{}", statement))
                 .collect::<Vec<String>>()
-                .join("\n"),
+                .join(""),
         )
     }
 }
@@ -82,7 +82,7 @@ impl fmt::Display for Expression {
                     _ => panic!("Invalid Infix Token: {:?}", operator_token),
                 };
 
-                write!(f, "({}{}{})", left, operator, right)
+                write!(f, "({} {} {})", left, operator, right)
             }
         }
     }
@@ -104,6 +104,6 @@ mod tests {
             .statements
             .push(Statement::ReturnStatement(Token::Return));
 
-        assert_eq!(program.to_string(), "let myVar = 5;\nreturn (todo);");
+        assert_eq!(program.to_string(), "let myVar = 5;return (todo);");
     }
 }
