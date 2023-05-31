@@ -16,11 +16,12 @@ enum Precedence {
 
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
-    ExpectedIdentifierToken(Token),
+    ExpectedIdentifier(Token),
+    ExpectedInteger(Token),
+    ExpectedBoolean(Token),
     UnexpectedToken(Token, Token),
     MissingParsePrefixFunction(Token),
     IntegerParsingError(Token),
-    ExpectedIntegerToken(Token),
     // UnknownError(String),
 }
 
@@ -59,6 +60,7 @@ impl Parser {
             Token::Indentifier(_) => Some(Parser::parse_identifier),
             Token::Integer(_) => Some(Parser::parse_integer),
             Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
+            Token::True | Token::False => Some(Parser::parse_boolean),
             _ => None,
         }
     }
@@ -122,9 +124,7 @@ impl Parser {
                 ident
             }
             _ => {
-                let err = Err(ParserError::ExpectedIdentifierToken(
-                    self.peek_token.clone(),
-                ));
+                let err = Err(ParserError::ExpectedIdentifier(self.peek_token.clone()));
                 self.next_token();
                 return err;
             }
@@ -140,11 +140,7 @@ impl Parser {
                 self.next_token();
                 ident
             }
-            _ => {
-                return Err(ParserError::ExpectedIdentifierToken(
-                    self.peek_token.clone(),
-                ))
-            }
+            _ => return Err(ParserError::ExpectedIdentifier(self.peek_token.clone())),
         };
 
         loop {
@@ -217,9 +213,7 @@ impl Parser {
     fn parse_identifier(&mut self) -> Result<Expression, ParserError> {
         match &self.current_token {
             Token::Indentifier(value) => Ok(Expression::Identifier(value.to_string())),
-            _ => Err(ParserError::ExpectedIdentifierToken(
-                self.current_token.clone(),
-            )),
+            _ => Err(ParserError::ExpectedIdentifier(self.current_token.clone())),
         }
     }
 
@@ -227,9 +221,7 @@ impl Parser {
         let result = match &self.current_token {
             Token::Integer(val) => val,
             _ => {
-                return Err(ParserError::ExpectedIntegerToken(
-                    self.current_token.clone(),
-                ));
+                return Err(ParserError::ExpectedInteger(self.current_token.clone()));
             }
         };
 
@@ -279,6 +271,7 @@ impl Parser {
         ))
     }
 
+    }
     fn peek_precedence(&self) -> Precedence {
         self.get_operator_precedence(self.peek_token.clone())
     }
@@ -349,7 +342,7 @@ mod tests {
         parser.parse_program();
 
         let expected_erors = vec![
-            ParserError::ExpectedIdentifierToken(Token::Integer("10".to_string())),
+            ParserError::ExpectedIdentifier(Token::Integer("10".to_string())),
             ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
             ParserError::UnexpectedToken(Token::Assign, Token::Integer("11".to_string())),
         ];
@@ -383,15 +376,15 @@ mod tests {
         parser.parse_program();
 
         let expected_erors: Vec<ParserError> = vec![
-            ParserError::ExpectedIdentifierToken(Token::Assign),
-            ParserError::ExpectedIdentifierToken(Token::NotEq),
+            ParserError::ExpectedIdentifier(Token::Assign),
+            ParserError::ExpectedIdentifier(Token::NotEq),
         ];
 
         assert_eq!(parser.errors, expected_erors);
     }
 
     #[test]
-    fn test_parse_identifier_simple() {
+    fn test_parse_identifier_expression() {
         let input = "foobar;";
 
         let mut parser = Parser::from_source(input);
@@ -404,6 +397,23 @@ mod tests {
         ))];
 
         assert_eq!(program.statements, expected_statements);
+    }
+
+    #[test]
+    fn test_parse_boolean_expression() {
+        let inputs = vec![("true;", true), ("false;", false)];
+
+        for (input, output) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+
+            let expected_statements =
+                vec![Statement::ExpressionStatement(Expression::Boolean(output))];
+
+            assert_eq!(program.statements, expected_statements);
+        }
     }
 
     #[test]
@@ -441,6 +451,27 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_boolean_prefix_expression() {
+        let inputs = vec![
+            ("!true;", Token::Bang, true),
+            ("!false;", Token::Bang, false),
+        ];
+
+        for (input, operator, value) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+
+            let expected_statements = vec![Statement::ExpressionStatement(
+                Expression::PrefixExpression(operator, Box::new(Expression::Boolean(value))),
+            )];
+
+            assert_eq!(program.statements, expected_statements);
+        }
+    }
+
+    #[test]
     fn test_parse_infix_expression() {
         let inputs = vec![
             ("5 + 5", 5, Token::Plus, 5),
@@ -471,10 +502,39 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_boolean_infix_expression() {
+        let inputs = vec![
+            ("true == true", true, Token::Eq, true),
+            ("true != false", true, Token::NotEq, false),
+            ("false == false", false, Token::Eq, false),
+        ];
+
+        for (input, left, operator, right) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+
+            let expected_statements =
+                vec![Statement::ExpressionStatement(Expression::InfixExpression(
+                    Box::new(Expression::Boolean(left)),
+                    operator,
+                    Box::new(Expression::Boolean(right)),
+                ))];
+
+            assert_eq!(program.statements, expected_statements);
+        }
+    }
+
+    #[test]
     fn test_operator_precedence_parsing() {
         let inputs = vec![
             ("-a * b", "((-a) * b)"),
             ("!-a", "(!(-a))"),
+            ("true", "true"),
+            ("false", "false"),
+            ("3 > 5 == false", "((3 > 5) == false)"),
+            ("3 < 5 == true", "((3 < 5) == true)"),
             ("a + b + c", "((a + b) + c)"),
             ("a + b - c", "((a + b) - c)"),
             ("a * b * c", "((a * b) * c)"),
