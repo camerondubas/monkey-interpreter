@@ -115,8 +115,7 @@ impl Repl {
     }
 
     fn parse(&mut self, line: &String) {
-        let lexer = Lexer::new(&line);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(line);
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {

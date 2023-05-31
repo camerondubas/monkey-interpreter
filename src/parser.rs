@@ -49,6 +49,11 @@ impl Parser {
         }
     }
 
+    pub fn from_source(source: &str) -> Self {
+        let lexer = Lexer::new(source);
+        Parser::new(lexer)
+    }
+
     fn prefix_parse_fns(token: &Token) -> Option<PrefixParseFn> {
         match token {
             Token::Indentifier(_) => Some(Parser::parse_identifier),
@@ -307,8 +312,7 @@ mod tests {
         let input = "let x = 5;
         let y = 10;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         let program = parser.parse_program();
         expect_no_errors(&parser);
 
@@ -325,8 +329,7 @@ mod tests {
         let input = "let x = 5;
         let 10 = 10;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         parser.parse_program();
 
         let expected_erors = vec![
@@ -342,8 +345,7 @@ mod tests {
             let 10 = 10;
             let a 11;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         parser.parse_program();
 
         let expected_erors = vec![
@@ -359,8 +361,7 @@ mod tests {
         let input = "return 5;
         return 10;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         let program = parser.parse_program();
 
         expect_no_errors(&parser);
@@ -378,8 +379,7 @@ mod tests {
         let input = "return =;
         return !=;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         parser.parse_program();
 
         let expected_erors: Vec<ParserError> = vec![
@@ -394,8 +394,7 @@ mod tests {
     fn test_parse_identifier_simple() {
         let input = "foobar;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         let program = parser.parse_program();
 
         expect_no_errors(&parser);
@@ -411,8 +410,7 @@ mod tests {
     fn test_parse_integer_simple() {
         let input = "5;";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let mut parser = Parser::from_source(input);
         let program = parser.parse_program();
 
         expect_no_errors(&parser);
@@ -429,8 +427,7 @@ mod tests {
         let inputs = vec![("!5", Token::Bang, 5), ("-15", Token::Minus, 15)];
 
         for (input, operator, value) in inputs {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
+            let mut parser = Parser::from_source(input);
             let program = parser.parse_program();
 
             expect_no_errors(&parser);
@@ -457,8 +454,7 @@ mod tests {
         ];
 
         for (input, left, operator, right) in inputs {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
+            let mut parser = Parser::from_source(input);
             let program = parser.parse_program();
 
             expect_no_errors(&parser);
@@ -495,8 +491,7 @@ mod tests {
         ];
 
         for (input, output) in inputs {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
+            let mut parser = Parser::from_source(input);
             let program = parser.parse_program();
 
             expect_no_errors(&parser);
