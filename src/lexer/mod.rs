@@ -1,58 +1,7 @@
 use std::str;
+mod tokens;
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Token {
-    Illegal(String),
-    Eof,
-
-    // Keywords
-    Let,
-    Function,
-    True,
-    False,
-    If,
-    Else,
-    Return,
-
-    // Identifiers + literals
-    Indentifier(String),
-    Integer(String),
-
-    // Operators
-    Assign,
-    Plus,
-    Minus,
-    Bang,
-    Asterisk,
-    Slash,
-    Lt,
-    Gt,
-    Eq,
-    NotEq,
-
-    // Delimiters
-    Comma,
-    Semicolon,
-
-    // Braces
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-}
-
-fn get_identifier_token(token: &str) -> Token {
-    match token {
-        "let" => Token::Let,
-        "fn" => Token::Function,
-        "true" => Token::True,
-        "false" => Token::False,
-        "if" => Token::If,
-        "else" => Token::Else,
-        "return" => Token::Return,
-        _ => Token::Indentifier(token.to_string()),
-    }
-}
+pub use tokens::Token;
 
 pub struct Lexer {
     input: Vec<u8>,
@@ -125,7 +74,7 @@ impl Lexer {
             },
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
                 let identifier = &self.read_identifier();
-                return get_identifier_token(identifier);
+                return Lexer::get_identifier_token(identifier);
             }
             b'0'..=b'9' => return Token::Integer(self.read_number()),
             0 => Token::Eof,
@@ -161,6 +110,19 @@ impl Lexer {
     fn skip_whitespace(&mut self) {
         while self.ch == b' ' || self.ch == b'\t' || self.ch == b'\n' || self.ch == b'\r' {
             self.read_char();
+        }
+    }
+
+    fn get_identifier_token(token: &str) -> Token {
+        match token {
+            "let" => Token::Let,
+            "fn" => Token::Function,
+            "true" => Token::True,
+            "false" => Token::False,
+            "if" => Token::If,
+            "else" => Token::Else,
+            "return" => Token::Return,
+            _ => Token::Indentifier(token.to_string()),
         }
     }
 }

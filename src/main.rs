@@ -3,6 +3,8 @@ mod lexer;
 mod parser;
 mod repl;
 
+use lexer::Lexer;
+use parser::Parser;
 use repl::Repl;
 
 fn main() {
@@ -11,8 +13,8 @@ fn main() {
 
     // Dummy program to avoid unused code warnings
     let source = "let x = 5;";
-    let lexer = lexer::Lexer::new(source);
-    let mut parser = parser::Parser::new(lexer);
+    let lexer = Lexer::new(source);
+    let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
 
     println!("{:?}", program);
