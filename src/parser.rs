@@ -62,6 +62,7 @@ impl Parser {
             Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
             Token::True | Token::False => Some(Parser::parse_boolean),
             Token::LeftParen => Some(Parser::parse_grouped_expression),
+            Token::If => Some(Parser::parse_if_expression),
             _ => None,
         }
     }
@@ -85,13 +86,12 @@ impl Parser {
         self.peek_token = self.lexer.next_token();
     }
 
-    fn expect_peek(&mut self, token: Token, error: ParserError) -> bool {
+    fn expect_peek(&mut self, token: Token) -> Result<(), ParserError> {
         if self.peek_token.eq(&token) {
             self.next_token();
-            true
+            Ok(())
         } else {
-            self.errors.push(error);
-            false
+            Err(ParserError::UnexpectedToken(token, self.peek_token.clone()))
         }
     }
 
@@ -131,10 +131,7 @@ impl Parser {
             }
         };
 
-        self.expect_peek(
-            Token::Assign,
-            ParserError::UnexpectedToken(Token::Assign, self.peek_token.clone()),
-        );
+        self.expect_peek(Token::Assign)?;
 
         let identifier = match self.peek_token.clone() {
             Token::Integer(ident) => {
@@ -267,6 +264,47 @@ impl Parser {
         }
     }
 
+    fn parse_if_expression(&mut self) -> Result<Expression, ParserError> {
+        self.expect_peek(Token::LeftParen)?;
+
+        self.next_token();
+
+        let condition = &self.parse_expression(Precedence::Lowest)?;
+
+        self.expect_peek(Token::RightParen)?;
+        self.expect_peek(Token::LeftBrace)?;
+
+        let consequence = Box::new(self.parse_block_statement()?);
+        let alternative = match self.peek_token {
+            Token::Else => {
+                self.next_token();
+                self.expect_peek(Token::LeftBrace)?;
+                Some(Box::new(self.parse_block_statement()?))
+            }
+            _ => None,
+        };
+
+        Ok(Expression::If(
+            Box::new(condition.clone()),
+            consequence,
+            alternative,
+        ))
+    }
+
+    fn parse_block_statement(&mut self) -> Result<Statement, ParserError> {
+        let mut statements = vec![];
+
+        self.next_token();
+
+        while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
+            let statement = &self.parse_statement()?;
+            statements.push(statement.clone());
+            self.next_token();
+        }
+
+        Ok(Statement::BlockStatement(statements))
+    }
+
     fn peek_precedence(&self) -> Precedence {
         self.get_operator_precedence(self.peek_token.clone())
     }
@@ -294,14 +332,7 @@ impl Parser {
 
         let expression = self.parse_expression(Precedence::Lowest);
 
-        if self.peek_token != Token::RightParen {
-            return Err(ParserError::UnexpectedToken(
-                Token::RightParen,
-                self.current_token.clone(),
-            ));
-        }
-
-        self.next_token();
+        self.expect_peek(Token::RightParen)?;
 
         expression
     }
@@ -480,6 +511,50 @@ mod tests {
             )];
 
             assert_eq!(program.statements, expected_statements);
+        }
+    }
+
+    #[test]
+    fn test_parse_if_expression() {
+        let inputs = vec![
+            (
+                "if (x < y) { x }",
+                vec![Statement::ExpressionStatement(Expression::If(
+                    Box::new(Expression::InfixExpression(
+                        Box::new(Expression::Identifier("x".to_string())),
+                        Token::Lt,
+                        Box::new(Expression::Identifier("y".to_string())),
+                    )),
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
+                    ])),
+                    None,
+                ))],
+            ),
+            (
+                "if (x < y) { x } else { y }",
+                vec![Statement::ExpressionStatement(Expression::If(
+                    Box::new(Expression::InfixExpression(
+                        Box::new(Expression::Identifier("x".to_string())),
+                        Token::Lt,
+                        Box::new(Expression::Identifier("y".to_string())),
+                    )),
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
+                    ])),
+                    Some(Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::Identifier("y".to_string())),
+                    ]))),
+                ))],
+            ),
+        ];
+
+        for (input, output) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+            assert_eq!(program.statements, output);
         }
     }
 
