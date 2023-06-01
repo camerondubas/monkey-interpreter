@@ -39,8 +39,10 @@ pub enum Statement {
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Statement::LetStatement(name, value) => write!(f, "let {} = {};", name, value),
-            Statement::ReturnStatement(_) => write!(f, "{}", "return (todo);"),
+            Statement::LetStatement(name, value) => {
+                write!(f, "{} {} {} {};", Token::Let, name, Token::Assign, value)
+            }
+            Statement::ReturnStatement(_) => write!(f, "{} (todo);", Token::Return),
             Statement::ExpressionStatement(expression) => write!(f, "{}", expression),
         }
     }
@@ -60,32 +62,22 @@ impl fmt::Display for Expression {
         match self {
             Expression::Identifier(value) => write!(f, "{}", value),
             Expression::IntegerLiteral(value) => write!(f, "{}", value),
-            Expression::PrefixExpression(operator_token, right) => {
-                let operator = match operator_token {
-                    Token::Bang => "!",
-                    Token::Minus => "-",
-                    _ => panic!("Invalid Prefix Token: {:?}", operator_token),
-                };
-
-                write!(f, "({}{})", operator, right)
-            }
-            Expression::InfixExpression(left, operator_token, right) => {
-                let operator = match operator_token {
-                    Token::Plus => "+",
-                    Token::Minus => "-",
-                    Token::Asterisk => "*",
-                    Token::Slash => "/",
-                    Token::Gt => ">",
-                    Token::Lt => "<",
-                    Token::Eq => "==",
-                    Token::NotEq => "!=",
-
-                    _ => panic!("Invalid Infix Token: {:?}", operator_token),
-                };
-
-                write!(f, "({} {} {})", left, operator, right)
-            }
             Expression::Boolean(value) => write!(f, "{}", value),
+            Expression::PrefixExpression(operator_token, right) => match operator_token {
+                Token::Bang | Token::Minus => write!(f, "({}{})", operator_token, right),
+                    _ => panic!("Invalid Prefix Token: {:?}", operator_token),
+            },
+            Expression::InfixExpression(left, operator_token, right) => match operator_token {
+                Token::Plus
+                | Token::Minus
+                | Token::Asterisk
+                | Token::Slash
+                | Token::Gt
+                | Token::Lt
+                | Token::Eq
+                | Token::NotEq => write!(f, "({} {} {})", left, operator_token, right),
+                    _ => panic!("Invalid Infix Token: {:?}", operator_token),
+            },
         }
     }
 }

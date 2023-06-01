@@ -132,7 +132,7 @@ impl Repl {
         let mut lexer = Lexer::new(&line);
         loop {
             let token = lexer.next_token();
-            println!("{:?}", token);
+            println!("{:?}: {}", token, token.to_string().blue());
             if token == Token::Eof {
                 break;
             }
