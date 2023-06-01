@@ -3,6 +3,10 @@ use crate::{
     lexer::{Lexer, Token},
 };
 
+mod tracer;
+
+use tracer::Tracer;
+
 #[derive(PartialEq, PartialOrd)]
 enum Precedence {
     Lowest,
@@ -31,6 +35,7 @@ type InfixParseFn =
 
 pub struct Parser {
     lexer: Lexer,
+    tracer: Tracer,
 
     current_token: Token,
     peek_token: Token,
@@ -44,6 +49,7 @@ impl Parser {
         let peek_token = lexer.next_token();
         Parser {
             lexer,
+            tracer: Tracer::new(),
             current_token,
             peek_token,
             errors: Vec::new(),
@@ -53,6 +59,14 @@ impl Parser {
     pub fn from_source(source: &str) -> Self {
         let lexer = Lexer::new(source);
         Parser::new(lexer)
+    }
+
+    pub fn trace(&mut self, enable: bool) {
+        if enable {
+            self.tracer.enable();
+        } else {
+            self.tracer.disable();
+        }
     }
 
     fn prefix_parse_fns(token: &Token) -> Option<PrefixParseFn> {
@@ -170,12 +184,14 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
+        self.tracer.trace("parse_expression");
         let expression = self.parse_expression(Precedence::Lowest);
 
         if self.peek_token == Token::Semicolon {
             self.next_token();
         }
 
+        self.tracer.untrace("parse_expression");
         expression.map(|e| Statement::ExpressionStatement(e))
     }
 

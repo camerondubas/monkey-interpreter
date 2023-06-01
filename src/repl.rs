@@ -36,6 +36,7 @@ impl Display for ReplMode {
 pub struct Repl {
     history: Vec<String>,
     mode: ReplMode,
+    tracer_enabled: bool,
 }
 
 impl Repl {
@@ -43,6 +44,7 @@ impl Repl {
         Repl {
             history: Vec::new(),
             mode: ReplMode::Parser,
+            tracer_enabled: false,
         }
     }
 
@@ -53,14 +55,31 @@ impl Repl {
         for line in stdin.lock().lines() {
             let line = line.unwrap();
 
-            if line == ":exit;" {
-                println!("Bye! 👋");
-                break;
-            }
+            match line.as_str() {
+                ":exit;" => {
+                    println!("Bye! 👋");
+                    break;
+                }
+                ":tracer;" => {
+                    let message;
 
-            if line.is_empty() {
-                self.print_prompt();
-                continue;
+                    if self.tracer_enabled {
+                        self.tracer_enabled = false;
+                        message = "Disabled";
+                    } else {
+                        self.tracer_enabled = true;
+                        message = "Enabled";
+                    }
+
+                    println!("Tracer {}", message);
+                    self.print_prompt();
+                    continue;
+                }
+                line if line.is_empty() => {
+                    self.print_prompt();
+                    continue;
+                }
+                _ => (),
             }
 
             match &self.set_mode(line.clone()) {
@@ -116,6 +135,7 @@ impl Repl {
 
     fn parse(&mut self, line: &String) {
         let mut parser = Parser::from_source(line);
+        parser.trace(self.tracer_enabled);
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
@@ -144,6 +164,7 @@ impl Repl {
         println!("Welcome to {}.", "Monkey".green());
         println!("");
         println!("{}", EXIT_MESSAGE);
+        println!("{}", "Enable tracing with `:trace`");
         self.print_mode();
         println!("");
         self.print_prompt();
