@@ -32,7 +32,7 @@ impl fmt::Display for Program {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     LetStatement(String, Expression),
-    ReturnStatement(Token),
+    ReturnStatement(Expression),
     ExpressionStatement(Expression),
     BlockStatement(Vec<Statement>),
 }
@@ -134,7 +134,7 @@ mod tests {
 
         program
             .statements
-            .push(Statement::ReturnStatement(Token::Integer("4".to_string())));
+            .push(Statement::ReturnStatement(Expression::IntegerLiteral(4)));
 
         assert_eq!(program.to_string(), "let myVar = 5;return 4;");
     }
@@ -167,7 +167,7 @@ mod tests {
                 Expression::Identifier("c".to_string()),
             ],
             Box::new(Statement::BlockStatement(vec![Statement::ReturnStatement(
-                Token::Indentifier("d".to_string()),
+                Expression::Identifier("d".to_string()),
             )])),
         );
 
