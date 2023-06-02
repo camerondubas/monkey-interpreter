@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{f32::consts::E, fmt};
 
 use crate::lexer::Token;
 
@@ -65,6 +65,7 @@ pub enum Expression {
     Boolean(bool),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     FunctionLiteral(Vec<Expression>, Box<Statement>),
+    CallExpression(Box<Expression>, Vec<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -102,7 +103,7 @@ impl fmt::Display for Expression {
                 write!(f, "{}", full)
             }
             Expression::FunctionLiteral(args, body) => {
-                let args_str: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+                let args_str: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
                 write!(
                     f,
                     "{}({}) {{ {} }}",
@@ -110,6 +111,10 @@ impl fmt::Display for Expression {
                     args_str.join(", "),
                     body
                 )
+            }
+            Expression::CallExpression(function, args) => {
+                let args_str: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
+                write!(f, "{}({})", function, args_str.join(", "))
             }
         }
     }
@@ -136,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_if_strignify() {
-        let if_expression = Expression::If(
+        let expression = Expression::If(
             Box::new(Expression::Boolean(true)),
             Box::new(Statement::LetStatement(
                 "a".to_string(),
@@ -150,12 +155,12 @@ mod tests {
 
         let output = "if (true) { let a = 1; } else { let b = 2; }";
 
-        assert_eq!(if_expression.to_string(), output.to_string());
+        assert_eq!(expression.to_string(), output.to_string());
     }
 
     #[test]
     fn test_fn_literal_strignify() {
-        let if_expression = Expression::FunctionLiteral(
+        let expression = Expression::FunctionLiteral(
             vec![
                 Expression::Identifier("a".to_string()),
                 Expression::Identifier("b".to_string()),
@@ -168,6 +173,22 @@ mod tests {
 
         let output = "fn(a, b, c) { return d; }";
 
-        assert_eq!(if_expression.to_string(), output.to_string());
+        assert_eq!(expression.to_string(), output.to_string());
+    }
+
+    #[test]
+    fn test_fn_call_strignify() {
+        let expression = Expression::CallExpression(
+            Box::new(Expression::Identifier("add".to_string())),
+            vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Identifier("b".to_string()),
+                Expression::Identifier("c".to_string()),
+            ],
+        );
+
+        let output = "add(a, b, c)";
+
+        assert_eq!(expression.to_string(), output.to_string());
     }
 }

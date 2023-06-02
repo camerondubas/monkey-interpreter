@@ -92,6 +92,7 @@ impl Parser {
             | Token::Lt
             | Token::Eq
             | Token::NotEq => Some(Parser::parse_infix_expression),
+            Token::LeftParen => Some(Parser::parse_call_expression),
             _ => None,
         }
     }
@@ -359,6 +360,38 @@ impl Parser {
         Ok(identifiers)
     }
 
+    fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParserError> {
+        println!("parse_call_expression");
+        let arguments = self.parse_call_arguments()?;
+
+        Ok(Expression::CallExpression(Box::new(function), arguments))
+    }
+
+    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, ParserError> {
+        let mut arguments = vec![];
+
+        if self.peek_token == Token::RightParen {
+            self.next_token();
+            return Ok(arguments);
+        }
+
+        self.next_token();
+
+        let argument = self.parse_expression(Precedence::Lowest)?;
+        arguments.push(argument);
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+            self.next_token();
+            let argument = self.parse_expression(Precedence::Lowest)?;
+            arguments.push(argument);
+        }
+
+        self.expect_peek(Token::RightParen)?;
+
+        Ok(arguments)
+    }
+
     fn peek_precedence(&self) -> Precedence {
         self.get_operator_precedence(self.peek_token.clone())
     }
@@ -377,6 +410,7 @@ impl Parser {
             Token::Gt => Precedence::LessGreater,
             Token::Eq => Precedence::Equals,
             Token::NotEq => Precedence::Equals,
+            Token::LeftParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
@@ -693,6 +727,15 @@ mod tests {
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ];
 
         for (input, output) in inputs {
@@ -741,6 +784,33 @@ mod tests {
                 ))],
             ),
         ];
+
+        for (input, output) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+
+            assert_eq!(program.statements, output);
+        }
+    }
+
+    #[test]
+    fn test_fn_call_parsing() {
+        let inputs = vec![(
+            "add(a, 5 + 4);",
+            vec![Statement::ExpressionStatement(Expression::CallExpression(
+                Box::new(Expression::Identifier("add".to_string())),
+                vec![
+                    Expression::Identifier("a".to_string()),
+                    Expression::InfixExpression(
+                        Box::new(Expression::IntegerLiteral(5)),
+                        Token::Plus,
+                        Box::new(Expression::IntegerLiteral(4)),
+                    ),
+                ],
+            ))],
+        )];
 
         for (input, output) in inputs {
             let mut parser = Parser::from_source(input);
