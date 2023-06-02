@@ -77,6 +77,7 @@ impl Parser {
             Token::True | Token::False => Some(Parser::parse_boolean),
             Token::LeftParen => Some(Parser::parse_grouped_expression),
             Token::If => Some(Parser::parse_if_expression),
+            Token::Function => Some(Parser::parse_fn_literal),
             _ => None,
         }
     }
@@ -290,12 +291,12 @@ impl Parser {
         self.expect_peek(Token::RightParen)?;
         self.expect_peek(Token::LeftBrace)?;
 
-        let consequence = Box::new(self.parse_block_statement()?);
+        let consequence = self.parse_block_statement()?;
         let alternative = match self.peek_token {
             Token::Else => {
                 self.next_token();
                 self.expect_peek(Token::LeftBrace)?;
-                Some(Box::new(self.parse_block_statement()?))
+                Some(self.parse_block_statement()?)
             }
             _ => None,
         };
@@ -307,7 +308,7 @@ impl Parser {
         ))
     }
 
-    fn parse_block_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_block_statement(&mut self) -> Result<Box<Statement>, ParserError> {
         let mut statements = vec![];
 
         self.next_token();
@@ -318,7 +319,44 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::BlockStatement(statements))
+        Ok(Box::new(Statement::BlockStatement(statements)))
+    }
+
+    fn parse_fn_literal(&mut self) -> Result<Expression, ParserError> {
+        self.expect_peek(Token::LeftParen)?;
+
+        let params = self.parse_fn_parameters()?;
+
+        self.expect_peek(Token::LeftBrace)?;
+
+        let body = self.parse_block_statement()?;
+
+        Ok(Expression::FunctionLiteral(params, body))
+    }
+
+    fn parse_fn_parameters(&mut self) -> Result<Vec<Expression>, ParserError> {
+        let mut identifiers = vec![];
+
+        if self.peek_token == Token::RightParen {
+            self.next_token();
+            return Ok(identifiers);
+        }
+
+        self.next_token();
+
+        let identifier = self.parse_identifier()?;
+        identifiers.push(identifier);
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+            self.next_token();
+            let identifier = self.parse_identifier()?;
+            identifiers.push(identifier);
+        }
+
+        self.expect_peek(Token::RightParen)?;
+
+        Ok(identifiers)
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -667,7 +705,55 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_fn_literal_parsing() {
+        let inputs = vec![
+            (
+                "fn() {}",
+                vec![Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![],
+                    Box::new(Statement::BlockStatement(vec![])),
+                ))],
+            ),
+            (
+                "fn(x) { x }",
+                vec![Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![Expression::Identifier("x".to_string())],
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
+                    ])),
+                ))],
+            ),
+            (
+                "fn(x, y) { x + y; }",
+                vec![Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![
+                        Expression::Identifier("x".to_string()),
+                        Expression::Identifier("y".to_string()),
+                    ],
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::InfixExpression(
+                            Box::new(Expression::Identifier("x".to_string())),
+                            Token::Plus,
+                            Box::new(Expression::Identifier("y".to_string())),
+                        )),
+                    ])),
+                ))],
+            ),
+        ];
+
+        for (input, output) in inputs {
+            let mut parser = Parser::from_source(input);
+            let program = parser.parse_program();
+
+            expect_no_errors(&parser);
+
+            assert_eq!(program.statements, output);
+        }
+    }
+
     fn expect_no_errors(parser: &Parser) {
-        assert_eq!(parser.errors, vec![], "Found Parser Errors");
+        let expected: Vec<ParserError> = vec![];
+        assert_eq!(expected, parser.errors, "Found Parser Errors");
     }
 }

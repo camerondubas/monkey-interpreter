@@ -43,7 +43,7 @@ impl fmt::Display for Statement {
             Statement::LetStatement(name, value) => {
                 write!(f, "{} {} {} {};", Token::Let, name, Token::Assign, value)
             }
-            Statement::ReturnStatement(_) => write!(f, "{} (todo);", Token::Return),
+            Statement::ReturnStatement(value) => write!(f, "{} {};", Token::Return, value),
             Statement::ExpressionStatement(expression) => write!(f, "{}", expression),
             Statement::BlockStatement(statements) => {
                 for statement in statements {
@@ -64,6 +64,7 @@ pub enum Expression {
     InfixExpression(Box<Expression>, Token, Box<Expression>),
     Boolean(bool),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
+    FunctionLiteral(Vec<Expression>, Box<Statement>),
 }
 
 impl fmt::Display for Expression {
@@ -100,6 +101,16 @@ impl fmt::Display for Expression {
 
                 write!(f, "{}", full)
             }
+            Expression::FunctionLiteral(args, body) => {
+                let args_str: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+                write!(
+                    f,
+                    "{}({}) {{ {} }}",
+                    Token::Function,
+                    args_str.join(", "),
+                    body
+                )
+            }
         }
     }
 }
@@ -118,9 +129,9 @@ mod tests {
 
         program
             .statements
-            .push(Statement::ReturnStatement(Token::Return));
+            .push(Statement::ReturnStatement(Token::Integer("4".to_string())));
 
-        assert_eq!(program.to_string(), "let myVar = 5;return (todo);");
+        assert_eq!(program.to_string(), "let myVar = 5;return 4;");
     }
 
     #[test]
@@ -138,6 +149,24 @@ mod tests {
         );
 
         let output = "if (true) { let a = 1; } else { let b = 2; }";
+
+        assert_eq!(if_expression.to_string(), output.to_string());
+    }
+
+    #[test]
+    fn test_fn_literal_strignify() {
+        let if_expression = Expression::FunctionLiteral(
+            vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Identifier("b".to_string()),
+                Expression::Identifier("c".to_string()),
+            ],
+            Box::new(Statement::BlockStatement(vec![Statement::ReturnStatement(
+                Token::Indentifier("d".to_string()),
+            )])),
+        );
+
+        let output = "fn(a, b, c) { return d; }";
 
         assert_eq!(if_expression.to_string(), output.to_string());
     }
