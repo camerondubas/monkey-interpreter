@@ -143,7 +143,7 @@ impl Repl {
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
             for error in parser.errors {
-                println!("{:?}", error);
+                println!("  - {}", error);
             }
         }
     }

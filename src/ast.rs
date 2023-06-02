@@ -1,4 +1,4 @@
-use std::{f32::consts::E, fmt};
+use std::fmt;
 
 use crate::lexer::Token;
 

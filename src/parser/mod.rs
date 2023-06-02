@@ -3,8 +3,10 @@ use crate::{
     lexer::{Lexer, Token},
 };
 
+mod error;
 mod tracer;
 
+use error::ParserError;
 use tracer::Tracer;
 
 #[derive(PartialEq, PartialOrd)]
@@ -16,17 +18,6 @@ enum Precedence {
     Product,
     Prefix,
     Call,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum ParserError {
-    ExpectedIdentifier(Token),
-    ExpectedInteger(Token),
-    ExpectedBoolean(Token),
-    UnexpectedToken(Token, Token),
-    MissingParsePrefixFunction(Token),
-    IntegerParsingError(Token),
-    // UnknownError(String),
 }
 
 type PrefixParseFn = fn(&mut Parser) -> Result<Expression, ParserError>;
