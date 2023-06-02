@@ -43,6 +43,6 @@ impl Tracer {
     }
 
     pub fn disable(&mut self) {
-        self.enabled = true;
+        self.enabled = false;
     }
 }
