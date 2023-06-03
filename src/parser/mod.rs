@@ -60,48 +60,6 @@ impl Parser {
         }
     }
 
-    fn parse_prefix_fns(token: &Token) -> Option<PrefixParseFn> {
-        match token {
-            Token::Indentifier(_) => Some(Parser::parse_identifier),
-            Token::Integer(_) => Some(Parser::parse_integer),
-            Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
-            Token::True | Token::False => Some(Parser::parse_boolean),
-            Token::LeftParen => Some(Parser::parse_grouped_expression),
-            Token::If => Some(Parser::parse_if_expression),
-            Token::Function => Some(Parser::parse_fn_literal),
-            _ => None,
-        }
-    }
-
-    fn parse_infix_fns(token: &Token) -> Option<InfixParseFn> {
-        match token {
-            Token::Plus
-            | Token::Minus
-            | Token::Asterisk
-            | Token::Slash
-            | Token::Gt
-            | Token::Lt
-            | Token::Eq
-            | Token::NotEq => Some(Parser::parse_infix_expression),
-            Token::LeftParen => Some(Parser::parse_call_expression),
-            _ => None,
-        }
-    }
-
-    fn next_token(&mut self) -> () {
-        self.current_token = self.peek_token.clone();
-        self.peek_token = self.lexer.next_token();
-    }
-
-    fn expect_peek(&mut self, token: Token) -> Result<(), ParserError> {
-        if self.peek_token.eq(&token) {
-            self.next_token();
-            Ok(())
-        } else {
-            Err(ParserError::UnexpectedToken(token, self.peek_token.clone()))
-        }
-    }
-
     pub fn parse_program(&mut self) -> Program {
         let mut program = Program::new();
 
@@ -356,6 +314,58 @@ impl Parser {
         Ok(arguments)
     }
 
+    fn parse_grouped_expression(&mut self) -> Result<Expression, ParserError> {
+        self.next_token();
+
+        let expression = self.parse_expression(Precedence::Lowest);
+
+        self.expect_peek(Token::RightParen)?;
+
+        expression
+    }
+
+    fn parse_prefix_fns(token: &Token) -> Option<PrefixParseFn> {
+        match token {
+            Token::Indentifier(_) => Some(Parser::parse_identifier),
+            Token::Integer(_) => Some(Parser::parse_integer),
+            Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
+            Token::True | Token::False => Some(Parser::parse_boolean),
+            Token::LeftParen => Some(Parser::parse_grouped_expression),
+            Token::If => Some(Parser::parse_if_expression),
+            Token::Function => Some(Parser::parse_fn_literal),
+            _ => None,
+        }
+    }
+
+    fn parse_infix_fns(token: &Token) -> Option<InfixParseFn> {
+        match token {
+            Token::Plus
+            | Token::Minus
+            | Token::Asterisk
+            | Token::Slash
+            | Token::Gt
+            | Token::Lt
+            | Token::Eq
+            | Token::NotEq => Some(Parser::parse_infix_expression),
+            Token::LeftParen => Some(Parser::parse_call_expression),
+            _ => None,
+        }
+    }
+
+    fn next_token(&mut self) -> () {
+        self.current_token = self.peek_token.clone();
+        self.peek_token = self.lexer.next_token();
+    }
+
+    fn expect_peek(&mut self, token: Token) -> Result<(), ParserError> {
+        if self.peek_token.eq(&token) {
+            self.next_token();
+            Ok(())
+        } else {
+            Err(ParserError::UnexpectedToken(token, self.peek_token.clone()))
+        }
+    }
+
     fn peek_precedence(&self) -> Precedence {
         self.get_operator_precedence(self.peek_token.clone())
     }
@@ -377,16 +387,6 @@ impl Parser {
             Token::LeftParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
-    }
-
-    fn parse_grouped_expression(&mut self) -> Result<Expression, ParserError> {
-        self.next_token();
-
-        let expression = self.parse_expression(Precedence::Lowest);
-
-        self.expect_peek(Token::RightParen)?;
-
-        expression
     }
 }
 
