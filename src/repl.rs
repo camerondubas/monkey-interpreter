@@ -3,6 +3,7 @@ use rustyline::DefaultEditor;
 use std::fmt::Display;
 
 use crate::{
+    eval::eval,
     lexer::{Lexer, Token},
     parser::Parser,
 };
@@ -16,7 +17,7 @@ enum ReplMode {
     Lexer,
     Parser,
     Ast,
-    Output,
+    Eval,
 }
 
 impl Display for ReplMode {
@@ -25,7 +26,7 @@ impl Display for ReplMode {
             ReplMode::Lexer => "lexer",
             ReplMode::Parser => "parser",
             ReplMode::Ast => "ast",
-            ReplMode::Output => "output",
+            ReplMode::Eval => "eval",
         };
 
         write!(f, "{}", mode_str)
@@ -117,7 +118,7 @@ impl Repl {
             ReplMode::Lexer => self.lex(line),
             ReplMode::Parser => self.parse(line),
             ReplMode::Ast => self.ast(line),
-            ReplMode::Output => unimplemented!("output mode not implemented"),
+            ReplMode::Eval => self.eval(line),
         };
 
         Ok(())
@@ -133,13 +134,28 @@ impl Repl {
             "lexer" => ReplMode::Lexer,
             "parser" => ReplMode::Parser,
             "ast" => ReplMode::Ast,
-            "output" => return Err("output mode not implemented".to_string()),
+            "eval" => ReplMode::Eval,
             _ => return Err(format!("{:?} is not a valid mode", mode_str)),
         };
 
         self.mode = mode.clone();
 
         Ok(mode)
+    }
+
+    fn eval(&mut self, line: String) {
+        let mut parser = Parser::from_source(line.as_str());
+        let program = parser.parse_program();
+
+        if parser.errors.is_empty() {
+            let evaluated = eval(program);
+            println!("{}", evaluated);
+        } else {
+            println!("{}", PARSING_FAILED_MESSAGE.red());
+            for error in parser.errors {
+                println!("  - {}", error);
+            }
+        }
     }
 
     fn parse(&mut self, line: String) {
