@@ -15,6 +15,7 @@ const PARSING_FAILED_MESSAGE: &str = "Parsing failed. The following errors were 
 enum ReplMode {
     Lexer,
     Parser,
+    AST,
     Output,
 }
 
@@ -23,6 +24,7 @@ impl Display for ReplMode {
         let mode_str = match self {
             ReplMode::Lexer => "lexer",
             ReplMode::Parser => "parser",
+            ReplMode::AST => "ast",
             ReplMode::Output => "output",
         };
 
@@ -113,6 +115,7 @@ impl Repl {
         match self.mode {
             ReplMode::Lexer => self.lex(&line),
             ReplMode::Parser => self.parse(&line),
+            ReplMode::AST => self.ast(&line),
             ReplMode::Output => unimplemented!("output mode not implemented"),
         };
         return Ok(());
@@ -128,6 +131,7 @@ impl Repl {
         let mode = match mode_str {
             "lexer" => ReplMode::Lexer,
             "parser" => ReplMode::Parser,
+            "ast" => ReplMode::AST,
             "output" => return Err(format!("output mode not implemented")),
             _ => return Err(format!("{:?} is not a valid mode", mode_str)),
         };
@@ -144,6 +148,22 @@ impl Repl {
 
         if parser.errors.is_empty() {
             println!("{}", program.to_string());
+        } else {
+            println!("{}", PARSING_FAILED_MESSAGE.red());
+            for error in parser.errors {
+                println!("  - {}", error);
+            }
+        }
+    }
+
+    fn ast(&mut self, line: &String) {
+        let mut parser = Parser::from_source(line);
+        let program = parser.parse_program();
+
+        if parser.errors.is_empty() {
+            for statement in program.statements {
+                println!("{:?}", statement);
+            }
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
             for error in parser.errors {
@@ -171,7 +191,7 @@ impl Repl {
         println!("  - {}: {}", "`:trace`".yellow().italic(), "Toggle tracing");
         println!(
             "  - {}: {}",
-            "`:mode <lexer|parser|output>`".yellow().italic(),
+            "`:mode <lexer|parser|ast|output>`".yellow().italic(),
             "Change output mode"
         );
         println!("  - {}: {}", "`:exit`".yellow().italic(), "Exit REPL");
