@@ -165,7 +165,7 @@ impl Parser {
             _ => return Err(ParserError::ExpectedInteger(self.current_token.clone())),
         };
 
-        result.parse::<u64>().map_or(
+        result.parse::<i64>().map_or(
             Err(ParserError::IntegerParsingError(self.current_token.clone())),
             |value| Ok(Expression::IntegerLiteral(value)),
         )
