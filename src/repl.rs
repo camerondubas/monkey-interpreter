@@ -41,7 +41,7 @@ pub struct Repl {
 impl Repl {
     pub fn new() -> Self {
         Repl {
-            mode: ReplMode::Parser,
+            mode: ReplMode::Eval,
             tracer_enabled: false,
         }
     }
