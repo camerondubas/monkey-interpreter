@@ -31,21 +31,21 @@ impl fmt::Display for Program {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
-    LetStatement(String, Expression),
-    ReturnStatement(Expression),
-    ExpressionStatement(Expression),
-    BlockStatement(Vec<Statement>),
+    Let(String, Expression),
+    Return(Expression),
+    Expression(Expression),
+    Block(Vec<Statement>),
 }
 
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Statement::LetStatement(name, value) => {
+            Statement::Let(name, value) => {
                 write!(f, "{} {} {} {};", Token::Let, name, Token::Assign, value)
             }
-            Statement::ReturnStatement(value) => write!(f, "{} {};", Token::Return, value),
-            Statement::ExpressionStatement(expression) => write!(f, "{}", expression),
-            Statement::BlockStatement(statements) => {
+            Statement::Return(value) => write!(f, "{} {};", Token::Return, value),
+            Statement::Expression(expression) => write!(f, "{}", expression),
+            Statement::Block(statements) => {
                 for statement in statements {
                     write!(f, "{}", statement)?;
                 }
@@ -94,7 +94,7 @@ impl fmt::Display for Expression {
                 let consequence_str = format!("{{ {} }}", consequence);
                 let alternative_str = match alternative {
                     Some(value) => format!("{} {{ {} }}", Token::Else, value),
-                    None => format!(""),
+                    None => String::new(),
                 };
 
                 let full = vec![if_str, consequence_str, alternative_str].join(" ");
@@ -127,14 +127,14 @@ mod tests {
     #[test]
     fn test_program_stringify() {
         let mut program = Program::new();
-        program.statements.push(Statement::LetStatement(
+        program.statements.push(Statement::Let(
             "myVar".to_string(),
             Expression::Identifier("5".to_string()),
         ));
 
         program
             .statements
-            .push(Statement::ReturnStatement(Expression::IntegerLiteral(4)));
+            .push(Statement::Return(Expression::IntegerLiteral(4)));
 
         assert_eq!(program.to_string(), "let myVar = 5;return 4;");
     }
@@ -143,11 +143,11 @@ mod tests {
     fn test_if_strignify() {
         let expression = Expression::If(
             Box::new(Expression::Boolean(true)),
-            Box::new(Statement::LetStatement(
+            Box::new(Statement::Let(
                 "a".to_string(),
                 Expression::IntegerLiteral(1),
             )),
-            Some(Box::new(Statement::LetStatement(
+            Some(Box::new(Statement::Let(
                 "b".to_string(),
                 Expression::IntegerLiteral(2),
             ))),
@@ -166,7 +166,7 @@ mod tests {
                 Expression::Identifier("b".to_string()),
                 Expression::Identifier("c".to_string()),
             ],
-            Box::new(Statement::BlockStatement(vec![Statement::ReturnStatement(
+            Box::new(Statement::Block(vec![Statement::Return(
                 Expression::Identifier("d".to_string()),
             )])),
         );

@@ -101,7 +101,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::LetStatement(name, value))
+        Ok(Statement::Let(name, value))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParserError> {
@@ -113,7 +113,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::ReturnStatement(value))
+        Ok(Statement::Return(value))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
@@ -125,7 +125,7 @@ impl Parser {
         }
 
         self.tracer.untrace("parse_expression");
-        expression.map(|e| Statement::ExpressionStatement(e))
+        expression.map(Statement::Expression)
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
@@ -247,7 +247,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Box::new(Statement::BlockStatement(statements)))
+        Ok(Box::new(Statement::Block(statements)))
     }
 
     fn parse_fn_literal(&mut self) -> Result<Expression, ParserError> {
@@ -352,7 +352,7 @@ impl Parser {
         }
     }
 
-    fn next_token(&mut self) -> () {
+    fn next_token(&mut self) {
         self.current_token = self.peek_token.clone();
         self.peek_token = self.lexer.next_token();
     }
@@ -402,18 +402,15 @@ mod tests {
         let inputs = vec![
             (
                 "let x = 5;",
-                Statement::LetStatement("x".to_string(), Expression::IntegerLiteral(5)),
+                Statement::Let("x".to_string(), Expression::IntegerLiteral(5)),
             ),
             (
                 "let y = true;",
-                Statement::LetStatement("y".to_string(), Expression::Boolean(true)),
+                Statement::Let("y".to_string(), Expression::Boolean(true)),
             ),
             (
                 "let foo = bar;",
-                Statement::LetStatement(
-                    "foo".to_string(),
-                    Expression::Identifier("bar".to_string()),
-                ),
+                Statement::Let("foo".to_string(), Expression::Identifier("bar".to_string())),
             ),
         ];
 
@@ -425,15 +422,12 @@ mod tests {
         let inputs = vec![
             (
                 "return 5;",
-                Statement::ReturnStatement(Expression::IntegerLiteral(5)),
+                Statement::Return(Expression::IntegerLiteral(5)),
             ),
-            (
-                "return true;",
-                Statement::ReturnStatement(Expression::Boolean(true)),
-            ),
+            ("return true;", Statement::Return(Expression::Boolean(true))),
             (
                 "return bar;",
-                Statement::ReturnStatement(Expression::Identifier("bar".to_string())),
+                Statement::Return(Expression::Identifier("bar".to_string())),
             ),
         ];
 
@@ -445,11 +439,11 @@ mod tests {
         let inputs = vec![
             (
                 "foobar;",
-                Statement::ExpressionStatement(Expression::Identifier("foobar".to_string())),
+                Statement::Expression(Expression::Identifier("foobar".to_string())),
             ),
             (
                 "foo + bar;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::Identifier("foo".to_string())),
                     Token::Plus,
                     Box::new(Expression::Identifier("bar".to_string())),
@@ -463,14 +457,8 @@ mod tests {
     #[test]
     fn test_boolean() {
         let inputs = vec![
-            (
-                "true;",
-                Statement::ExpressionStatement(Expression::Boolean(true)),
-            ),
-            (
-                "false;",
-                Statement::ExpressionStatement(Expression::Boolean(false)),
-            ),
+            ("true;", Statement::Expression(Expression::Boolean(true))),
+            ("false;", Statement::Expression(Expression::Boolean(false))),
         ];
 
         expect_inputs_to_match(inputs);
@@ -479,13 +467,10 @@ mod tests {
     #[test]
     fn test_integer() {
         let inputs = vec![
-            (
-                "5;",
-                Statement::ExpressionStatement(Expression::IntegerLiteral(5)),
-            ),
+            ("5;", Statement::Expression(Expression::IntegerLiteral(5))),
             (
                 "10234;",
-                Statement::ExpressionStatement(Expression::IntegerLiteral(10234)),
+                Statement::Expression(Expression::IntegerLiteral(10234)),
             ),
         ];
 
@@ -497,32 +482,32 @@ mod tests {
         let inputs = vec![
             (
                 "if (x < y) { x }",
-                Statement::ExpressionStatement(Expression::If(
+                Statement::Expression(Expression::If(
                     Box::new(Expression::InfixExpression(
                         Box::new(Expression::Identifier("x".to_string())),
                         Token::Lt,
                         Box::new(Expression::Identifier("y".to_string())),
                     )),
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
-                    ])),
+                    Box::new(Statement::Block(vec![Statement::Expression(
+                        Expression::Identifier("x".to_string()),
+                    )])),
                     None,
                 )),
             ),
             (
                 "if (x < y) { x } else { y }",
-                Statement::ExpressionStatement(Expression::If(
+                Statement::Expression(Expression::If(
                     Box::new(Expression::InfixExpression(
                         Box::new(Expression::Identifier("x".to_string())),
                         Token::Lt,
                         Box::new(Expression::Identifier("y".to_string())),
                     )),
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
-                    ])),
-                    Some(Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::Identifier("y".to_string())),
-                    ]))),
+                    Box::new(Statement::Block(vec![Statement::Expression(
+                        Expression::Identifier("x".to_string()),
+                    )])),
+                    Some(Box::new(Statement::Block(vec![Statement::Expression(
+                        Expression::Identifier("y".to_string()),
+                    )]))),
                 )),
             ),
         ];
@@ -534,34 +519,34 @@ mod tests {
         let inputs = vec![
             (
                 "fn() {}",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                Statement::Expression(Expression::FunctionLiteral(
                     vec![],
-                    Box::new(Statement::BlockStatement(vec![])),
+                    Box::new(Statement::Block(vec![])),
                 )),
             ),
             (
                 "fn(x) { x }",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                Statement::Expression(Expression::FunctionLiteral(
                     vec![Expression::Identifier("x".to_string())],
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
-                    ])),
+                    Box::new(Statement::Block(vec![Statement::Expression(
+                        Expression::Identifier("x".to_string()),
+                    )])),
                 )),
             ),
             (
                 "fn(x, y) { x + y; }",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                Statement::Expression(Expression::FunctionLiteral(
                     vec![
                         Expression::Identifier("x".to_string()),
                         Expression::Identifier("y".to_string()),
                     ],
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::InfixExpression(
+                    Box::new(Statement::Block(vec![Statement::Expression(
+                        Expression::InfixExpression(
                             Box::new(Expression::Identifier("x".to_string())),
                             Token::Plus,
                             Box::new(Expression::Identifier("y".to_string())),
-                        )),
-                    ])),
+                        ),
+                    )])),
                 )),
             ),
         ];
@@ -573,7 +558,7 @@ mod tests {
     fn test_function_call() {
         let inputs = vec![(
             "add(a, 5 + 4);",
-            Statement::ExpressionStatement(Expression::CallExpression(
+            Statement::Expression(Expression::CallExpression(
                 Box::new(Expression::Identifier("add".to_string())),
                 vec![
                     Expression::Identifier("a".to_string()),
@@ -594,28 +579,28 @@ mod tests {
         let inputs = vec![
             (
                 "!5;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
+                Statement::Expression(Expression::PrefixExpression(
                     Token::Bang,
                     Box::new(Expression::IntegerLiteral(5)),
                 )),
             ),
             (
                 "-15;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
+                Statement::Expression(Expression::PrefixExpression(
                     Token::Minus,
                     Box::new(Expression::IntegerLiteral(15)),
                 )),
             ),
             (
                 "!true;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
+                Statement::Expression(Expression::PrefixExpression(
                     Token::Bang,
                     Box::new(Expression::Boolean(true)),
                 )),
             ),
             (
                 "!false;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
+                Statement::Expression(Expression::PrefixExpression(
                     Token::Bang,
                     Box::new(Expression::Boolean(false)),
                 )),
@@ -630,7 +615,7 @@ mod tests {
         let inputs = vec![
             (
                 "5 + 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Plus,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -638,7 +623,7 @@ mod tests {
             ),
             (
                 "5 - 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Minus,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -646,7 +631,7 @@ mod tests {
             ),
             (
                 "5 * 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Asterisk,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -654,7 +639,7 @@ mod tests {
             ),
             (
                 "5 / 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Slash,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -662,7 +647,7 @@ mod tests {
             ),
             (
                 "5 > 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Gt,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -670,7 +655,7 @@ mod tests {
             ),
             (
                 "5 < 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Lt,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -678,7 +663,7 @@ mod tests {
             ),
             (
                 "5 == 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::Eq,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -686,7 +671,7 @@ mod tests {
             ),
             (
                 "5 != 5;",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::IntegerLiteral(5)),
                     Token::NotEq,
                     Box::new(Expression::IntegerLiteral(5)),
@@ -694,7 +679,7 @@ mod tests {
             ),
             (
                 "true == true",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::Boolean(true)),
                     Token::Eq,
                     Box::new(Expression::Boolean(true)),
@@ -702,7 +687,7 @@ mod tests {
             ),
             (
                 "true != false",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::Boolean(true)),
                     Token::NotEq,
                     Box::new(Expression::Boolean(false)),
@@ -710,7 +695,7 @@ mod tests {
             ),
             (
                 "false == false",
-                Statement::ExpressionStatement(Expression::InfixExpression(
+                Statement::Expression(Expression::InfixExpression(
                     Box::new(Expression::Boolean(false)),
                     Token::Eq,
                     Box::new(Expression::Boolean(false)),

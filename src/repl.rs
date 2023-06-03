@@ -15,7 +15,7 @@ const PARSING_FAILED_MESSAGE: &str = "Parsing failed. The following errors were 
 enum ReplMode {
     Lexer,
     Parser,
-    AST,
+    Ast,
     Output,
 }
 
@@ -24,7 +24,7 @@ impl Display for ReplMode {
         let mode_str = match self {
             ReplMode::Lexer => "lexer",
             ReplMode::Parser => "parser",
-            ReplMode::AST => "ast",
+            ReplMode::Ast => "ast",
             ReplMode::Output => "output",
         };
 
@@ -58,7 +58,7 @@ impl Repl {
                     rl.add_history_entry(line.as_str())?;
                     let result = self.handle_input(line);
 
-                    if let Err(_) = result {
+                    if result.is_err() {
                         break;
                     }
                 }
@@ -101,7 +101,7 @@ impl Repl {
                 return Ok(());
             }
             line if line.starts_with(":mode") => {
-                match self.set_mode(line.clone()) {
+                match self.set_mode(line) {
                     Ok(_) => self.print_mode(),
                     Err(e) => println!("{}", e.red()),
                 };
@@ -114,26 +114,26 @@ impl Repl {
         }
 
         match self.mode {
-            ReplMode::Lexer => self.lex(&line),
-            ReplMode::Parser => self.parse(&line),
-            ReplMode::AST => self.ast(&line),
+            ReplMode::Lexer => self.lex(line),
+            ReplMode::Parser => self.parse(line),
+            ReplMode::Ast => self.ast(line),
             ReplMode::Output => unimplemented!("output mode not implemented"),
         };
-        return Ok(());
+
+        Ok(())
     }
 
     fn set_mode(&mut self, line: &str) -> Result<ReplMode, String> {
         let mode_str = line
-            .split(" ")
-            .skip(1)
-            .next()
+            .split(' ')
+            .nth(1)
             .ok_or("No mode provided".to_string())?;
 
         let mode = match mode_str {
             "lexer" => ReplMode::Lexer,
             "parser" => ReplMode::Parser,
-            "ast" => ReplMode::AST,
-            "output" => return Err(format!("output mode not implemented")),
+            "ast" => ReplMode::Ast,
+            "output" => return Err("output mode not implemented".to_string()),
             _ => return Err(format!("{:?} is not a valid mode", mode_str)),
         };
 
@@ -142,13 +142,13 @@ impl Repl {
         Ok(mode)
     }
 
-    fn parse(&mut self, line: &String) {
-        let mut parser = Parser::from_source(line);
+    fn parse(&mut self, line: String) {
+        let mut parser = Parser::from_source(line.as_str());
         parser.trace(self.tracer_enabled);
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
-            println!("{}", program.to_string());
+            println!("{}", program);
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
             for error in parser.errors {
@@ -157,8 +157,8 @@ impl Repl {
         }
     }
 
-    fn ast(&mut self, line: &String) {
-        let mut parser = Parser::from_source(line);
+    fn ast(&mut self, line: String) {
+        let mut parser = Parser::from_source(line.as_str());
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
@@ -173,8 +173,8 @@ impl Repl {
         }
     }
 
-    fn lex(&mut self, line: &String) {
-        let mut lexer = Lexer::new(&line);
+    fn lex(&mut self, line: String) {
+        let mut lexer = Lexer::new(line.as_str());
         loop {
             let token = lexer.next_token();
             println!("{:?}: {}", token, token.to_string().blue());
@@ -185,20 +185,19 @@ impl Repl {
     }
 
     fn print_welcome(&mut self) {
-        println!("");
+        println!();
         println!("Welcome to {}.", "Monkey 🍌".green().bold());
-        println!("");
+        println!();
         println!("Commands:");
-        println!("  - {}: {}", "`:trace`".yellow().italic(), "Toggle tracing");
+        println!("  - {}: Toggle tracing", "`:trace`".yellow().italic());
         println!(
-            "  - {}: {}",
-            "`:mode <lexer|parser|ast|output>`".yellow().italic(),
-            "Change output mode"
+            "  - {}: Change output mode",
+            "`:mode <lexer|parser|ast|output>`".yellow().italic()
         );
-        println!("  - {}: {}", "`:exit`".yellow().italic(), "Exit REPL");
-        println!("");
+        println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
+        println!();
         self.print_mode();
-        println!("");
+        println!();
     }
 
     fn print_mode(&mut self) {
