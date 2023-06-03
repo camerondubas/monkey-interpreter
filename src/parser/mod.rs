@@ -392,6 +392,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
     use crate::ast::Statement;
 
@@ -419,38 +421,6 @@ mod tests {
     }
 
     #[test]
-    fn test_let_parser_error_simple() {
-        let input = "let x = 5;
-        let 10 = 10;";
-
-        let mut parser = Parser::from_source(input);
-        parser.parse_program();
-
-        let expected_erors = vec![
-            ParserError::ExpectedIdentifier(Token::Integer("10".to_string())),
-            ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
-        ];
-        assert_eq!(parser.errors, expected_erors);
-    }
-
-    #[test]
-    fn test_let_parser_error_multiple() {
-        let input = "let x = 5;
-            let 10 = 10;
-            let a 11;";
-
-        let mut parser = Parser::from_source(input);
-        parser.parse_program();
-
-        let expected_erors = vec![
-            ParserError::ExpectedIdentifier(Token::Integer("10".to_string())),
-            ParserError::MissingParsePrefixFunction(Token::Assign), // Temp Until Implemented
-            ParserError::UnexpectedToken(Token::Assign, Token::Integer("11".to_string())),
-        ];
-        assert_eq!(parser.errors, expected_erors);
-    }
-
-    #[test]
     fn test_return_statements() {
         let inputs = vec![
             (
@@ -470,29 +440,8 @@ mod tests {
         expect_inputs_to_match(inputs);
     }
 
-    #[ignore]
     #[test]
-    fn test_return_statements_error() {
-        let inputs = vec![
-            (
-                "return 5;",
-                Statement::ReturnStatement(Expression::IntegerLiteral(5)),
-            ),
-            (
-                "return true;",
-                Statement::ReturnStatement(Expression::Boolean(true)),
-            ),
-            (
-                "return bar;",
-                Statement::ReturnStatement(Expression::Identifier("bar".to_string())),
-            ),
-        ];
-
-        expect_inputs_to_match(inputs);
-    }
-
-    #[test]
-    fn test_parse_identifier_expression() {
+    fn test_identifier() {
         let inputs = vec![
             (
                 "foobar;",
@@ -512,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_boolean_expression() {
+    fn test_boolean() {
         let inputs = vec![
             (
                 "true;",
@@ -528,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_integer() {
+    fn test_integer() {
         let inputs = vec![
             (
                 "5;",
@@ -544,43 +493,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_prefix_expression() {
-        let inputs = vec![
-            (
-                "!5;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
-                    Token::Bang,
-                    Box::new(Expression::IntegerLiteral(5)),
-                )),
-            ),
-            (
-                "-15;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
-                    Token::Minus,
-                    Box::new(Expression::IntegerLiteral(15)),
-                )),
-            ),
-            (
-                "!true;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
-                    Token::Bang,
-                    Box::new(Expression::Boolean(true)),
-                )),
-            ),
-            (
-                "!false;",
-                Statement::ExpressionStatement(Expression::PrefixExpression(
-                    Token::Bang,
-                    Box::new(Expression::Boolean(false)),
-                )),
-            ),
-        ];
-
-        expect_inputs_to_match(inputs);
-    }
-
-    #[test]
-    fn test_parse_if_expression() {
+    fn test_if_expression() {
         let inputs = vec![
             (
                 "if (x < y) { x }",
@@ -616,9 +529,104 @@ mod tests {
 
         expect_inputs_to_match(inputs);
     }
+    #[test]
+    fn test_function_literal() {
+        let inputs = vec![
+            (
+                "fn() {}",
+                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![],
+                    Box::new(Statement::BlockStatement(vec![])),
+                )),
+            ),
+            (
+                "fn(x) { x }",
+                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![Expression::Identifier("x".to_string())],
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
+                    ])),
+                )),
+            ),
+            (
+                "fn(x, y) { x + y; }",
+                Statement::ExpressionStatement(Expression::FunctionLiteral(
+                    vec![
+                        Expression::Identifier("x".to_string()),
+                        Expression::Identifier("y".to_string()),
+                    ],
+                    Box::new(Statement::BlockStatement(vec![
+                        Statement::ExpressionStatement(Expression::InfixExpression(
+                            Box::new(Expression::Identifier("x".to_string())),
+                            Token::Plus,
+                            Box::new(Expression::Identifier("y".to_string())),
+                        )),
+                    ])),
+                )),
+            ),
+        ];
+
+        expect_inputs_to_match(inputs);
+    }
 
     #[test]
-    fn test_parse_infix_expression() {
+    fn test_function_call() {
+        let inputs = vec![(
+            "add(a, 5 + 4);",
+            Statement::ExpressionStatement(Expression::CallExpression(
+                Box::new(Expression::Identifier("add".to_string())),
+                vec![
+                    Expression::Identifier("a".to_string()),
+                    Expression::InfixExpression(
+                        Box::new(Expression::IntegerLiteral(5)),
+                        Token::Plus,
+                        Box::new(Expression::IntegerLiteral(4)),
+                    ),
+                ],
+            )),
+        )];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
+    fn test_prefix_expression() {
+        let inputs = vec![
+            (
+                "!5;",
+                Statement::ExpressionStatement(Expression::PrefixExpression(
+                    Token::Bang,
+                    Box::new(Expression::IntegerLiteral(5)),
+                )),
+            ),
+            (
+                "-15;",
+                Statement::ExpressionStatement(Expression::PrefixExpression(
+                    Token::Minus,
+                    Box::new(Expression::IntegerLiteral(15)),
+                )),
+            ),
+            (
+                "!true;",
+                Statement::ExpressionStatement(Expression::PrefixExpression(
+                    Token::Bang,
+                    Box::new(Expression::Boolean(true)),
+                )),
+            ),
+            (
+                "!false;",
+                Statement::ExpressionStatement(Expression::PrefixExpression(
+                    Token::Bang,
+                    Box::new(Expression::Boolean(false)),
+                )),
+            ),
+        ];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
+    fn test_infix_expression() {
         let inputs = vec![
             (
                 "5 + 5;",
@@ -761,63 +769,39 @@ mod tests {
     }
 
     #[test]
-    fn test_fn_literal_parsing() {
+    fn test_parser_errors() {
         let inputs = vec![
             (
-                "fn() {}",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
-                    vec![],
-                    Box::new(Statement::BlockStatement(vec![])),
-                )),
+                "let 10 = 9",
+                vec![
+                    ParserError::ExpectedIdentifier(Token::Integer("10".to_string())),
+                    ParserError::MissingParsePrefixFunction(Token::Assign),
+                ],
             ),
             (
-                "fn(x) { x }",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
-                    vec![Expression::Identifier("x".to_string())],
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::Identifier("x".to_string())),
-                    ])),
-                )),
+                "let a 11;",
+                vec![ParserError::UnexpectedToken(
+                    Token::Assign,
+                    Token::Integer("11".to_string()),
+                )],
             ),
             (
-                "fn(x, y) { x + y; }",
-                Statement::ExpressionStatement(Expression::FunctionLiteral(
-                    vec![
-                        Expression::Identifier("x".to_string()),
-                        Expression::Identifier("y".to_string()),
-                    ],
-                    Box::new(Statement::BlockStatement(vec![
-                        Statement::ExpressionStatement(Expression::InfixExpression(
-                            Box::new(Expression::Identifier("x".to_string())),
-                            Token::Plus,
-                            Box::new(Expression::Identifier("y".to_string())),
-                        )),
-                    ])),
-                )),
+                "fn({) { return 11;}",
+                vec![
+                    ParserError::ExpectedIdentifier(Token::LeftBrace),
+                    ParserError::MissingParsePrefixFunction(Token::RightParen),
+                    ParserError::MissingParsePrefixFunction(Token::LeftBrace),
+                    ParserError::MissingParsePrefixFunction(Token::RightBrace),
+                ],
             ),
         ];
 
-        expect_inputs_to_match(inputs);
-    }
+        for (input, expected_errors) in inputs {
+            let mut parser = Parser::from_source(input);
+            parser.parse_program();
 
-    #[test]
-    fn test_fn_call_parsing() {
-        let inputs = vec![(
-            "add(a, 5 + 4);",
-            Statement::ExpressionStatement(Expression::CallExpression(
-                Box::new(Expression::Identifier("add".to_string())),
-                vec![
-                    Expression::Identifier("a".to_string()),
-                    Expression::InfixExpression(
-                        Box::new(Expression::IntegerLiteral(5)),
-                        Token::Plus,
-                        Box::new(Expression::IntegerLiteral(4)),
-                    ),
-                ],
-            )),
-        )];
-
-        expect_inputs_to_match(inputs);
+            assert_eq!(parser.errors, expected_errors);
+        }
     }
 
     fn expect_no_errors(parser: &Parser) {
