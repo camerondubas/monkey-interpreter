@@ -46,9 +46,10 @@ impl Repl {
     }
 
     pub fn start(&mut self) -> rustyline::Result<()> {
-        self.print_welcome();
-
         let mut rl = DefaultEditor::new()?;
+        let _ = rl.load_history("history.txt");
+
+        self.print_welcome();
 
         loop {
             let readline = rl.readline(format!("{}", PROMPT.green()).as_str());
@@ -75,7 +76,7 @@ impl Repl {
                 }
             }
         }
-
+        rl.save_history("history.txt")?;
         Ok(())
     }
 
