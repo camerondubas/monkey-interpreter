@@ -85,7 +85,7 @@ impl Parser {
 
     fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
         let name = match self.peek_token.clone() {
-            Token::Indentifier(ident) => {
+            Token::Identifier(ident) => {
                 self.next_token();
                 ident
             }
@@ -154,7 +154,7 @@ impl Parser {
 
     fn parse_identifier(&mut self) -> Result<Expression, ParserError> {
         match &self.current_token {
-            Token::Indentifier(value) => Ok(Expression::Identifier(value.to_string())),
+            Token::Identifier(value) => Ok(Expression::Identifier(value.to_string())),
             _ => Err(ParserError::ExpectedIdentifier(self.current_token.clone())),
         }
     }
@@ -326,7 +326,7 @@ impl Parser {
 
     fn parse_prefix_fns(token: &Token) -> Option<PrefixParseFn> {
         match token {
-            Token::Indentifier(_) => Some(Parser::parse_identifier),
+            Token::Identifier(_) => Some(Parser::parse_identifier),
             Token::Integer(_) => Some(Parser::parse_integer),
             Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
             Token::True | Token::False => Some(Parser::parse_boolean),
