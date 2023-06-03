@@ -8,7 +8,10 @@ use repl::Repl;
 
 fn main() {
     let mut repl = Repl::new();
-    repl.start();
+    match repl.start() {
+        Ok(_) => (),
+        Err(e) => println!("{}", e),
+    };
 
     // Dummy program to avoid unused code warnings
     let source = "let x = 5;";

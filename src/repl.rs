@@ -1,7 +1,6 @@
-use std::{
-    fmt::Display,
-    io::{self, BufRead, Write},
-};
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
+use std::fmt::Display;
 
 use crate::{
     lexer::{Lexer, Token},
@@ -11,8 +10,6 @@ use colored::Colorize;
 
 const PROMPT: &str = ">> ";
 const PARSING_FAILED_MESSAGE: &str = "Parsing failed. The following errors were found:";
-const CHANGE_MODE_MESSAGE: &str = "Change mode with `:mode <lexer|parser|output>;`";
-const EXIT_MESSAGE: &str = "Exit with `:exit;`";
 
 #[derive(Debug, PartialEq, Clone)]
 enum ReplMode {
@@ -34,7 +31,6 @@ impl Display for ReplMode {
 }
 
 pub struct Repl {
-    history: Vec<String>,
     mode: ReplMode,
     tracer_enabled: bool,
 }
@@ -42,79 +38,87 @@ pub struct Repl {
 impl Repl {
     pub fn new() -> Self {
         Repl {
-            history: Vec::new(),
             mode: ReplMode::Parser,
             tracer_enabled: false,
         }
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> rustyline::Result<()> {
         self.print_welcome();
-        let stdin = io::stdin();
 
-        for line in stdin.lock().lines() {
-            let line = line.unwrap();
+        let mut rl = DefaultEditor::new()?;
 
-            match line.as_str() {
-                ":exit;" => {
-                    println!("Bye! 👋");
+        loop {
+            let readline = rl.readline(format!("{}", PROMPT.green()).as_str());
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_str())?;
+                    let result = self.handle_input(line);
+
+                    if let Err(_) = result {
+                        break;
+                    }
+                }
+                Err(ReadlineError::Interrupted) => {
+                    println!("CTRL-C");
                     break;
                 }
-                ":tracer;" => {
-                    let message;
-
-                    if self.tracer_enabled {
-                        self.tracer_enabled = false;
-                        message = "Disabled";
-                    } else {
-                        self.tracer_enabled = true;
-                        message = "Enabled";
-                    }
-
-                    println!("Tracer {}", message);
-                    self.print_prompt();
-                    continue;
+                Err(ReadlineError::Eof) => {
+                    println!("CTRL-D");
+                    break;
                 }
-                line if line.is_empty() => {
-                    self.print_prompt();
-                    continue;
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
                 }
-                _ => (),
             }
-
-            match &self.set_mode(line.clone()) {
-                Ok(opt) => {
-                    if opt.is_some() {
-                        self.print_mode();
-                        self.print_prompt();
-                        continue;
-                    }
-                }
-                Err(e) => {
-                    println!("{}", e.red());
-                    self.print_prompt();
-                    continue;
-                }
-            };
-
-            match self.mode {
-                ReplMode::Lexer => self.lex(&line),
-                ReplMode::Parser => self.parse(&line),
-                ReplMode::Output => unimplemented!("output mode not implemented"),
-            }
-
-            self.history.push(line);
-
-            println!("");
-            self.print_prompt();
         }
+
+        Ok(())
     }
 
-    fn set_mode(&mut self, line: String) -> Result<Option<ReplMode>, String> {
-        if !line.starts_with(":mode") || !line.ends_with(";") {
-            return Ok(None);
+    fn handle_input(&mut self, line: String) -> Result<(), ()> {
+        match line.as_str() {
+            ":exit" => {
+                println!("Bye! 👋");
+                return Err(());
+            }
+            ":tracer" => {
+                let message;
+
+                if self.tracer_enabled {
+                    self.tracer_enabled = false;
+                    message = "Disabled";
+                } else {
+                    self.tracer_enabled = true;
+                    message = "Enabled";
+                }
+
+                println!("Tracer {}", message);
+                return Ok(());
+            }
+            line if line.starts_with(":mode") => {
+                match self.set_mode(line.clone()) {
+                    Ok(_) => self.print_mode(),
+                    Err(e) => println!("{}", e.red()),
+                };
+                return Ok(());
+            }
+            line if line.is_empty() => {
+                return Ok(());
+            }
+            _ => (),
         }
 
+        match self.mode {
+            ReplMode::Lexer => self.lex(&line),
+            ReplMode::Parser => self.parse(&line),
+            ReplMode::Output => unimplemented!("output mode not implemented"),
+        };
+        return Ok(());
+    }
+
+    fn set_mode(&mut self, line: &str) -> Result<ReplMode, String> {
         let mode_str = line
             .split(" ")
             .skip(1)
@@ -122,15 +126,15 @@ impl Repl {
             .ok_or("No mode provided".to_string())?;
 
         let mode = match mode_str {
-            "lexer;" => ReplMode::Lexer,
-            "parser;" => ReplMode::Parser,
-            "output;" => return Err(format!("output mode not implemented")),
+            "lexer" => ReplMode::Lexer,
+            "parser" => ReplMode::Parser,
+            "output" => return Err(format!("output mode not implemented")),
             _ => return Err(format!("{:?} is not a valid mode", mode_str)),
         };
 
         self.mode = mode.clone();
 
-        Ok(Some(mode))
+        Ok(mode)
     }
 
     fn parse(&mut self, line: &String) {
@@ -161,23 +165,23 @@ impl Repl {
 
     fn print_welcome(&mut self) {
         println!("");
-        println!("Welcome to {}.", "Monkey".green());
+        println!("Welcome to {}.", "Monkey 🍌".green().bold());
         println!("");
-        println!("{}", EXIT_MESSAGE);
-        println!("{}", "Enable tracing with `:trace`");
+        println!("Commands:");
+        println!("  - {}: {}", "`:trace`".yellow().italic(), "Toggle tracing");
+        println!(
+            "  - {}: {}",
+            "`:mode <lexer|parser|output>`".yellow().italic(),
+            "Change output mode"
+        );
+        println!("  - {}: {}", "`:exit`".yellow().italic(), "Exit REPL");
+        println!("");
         self.print_mode();
         println!("");
-        self.print_prompt();
     }
 
     fn print_mode(&mut self) {
-        let mode_message = format!("Repl mode set to \"{}\".", &self.mode).blue();
-        println!("{} {}", mode_message, CHANGE_MODE_MESSAGE.yellow().italic());
-    }
-
-    fn print_prompt(&mut self) {
-        print!("{}", PROMPT.green());
-        io::stdout().flush().unwrap();
+        println!("{}", format!("Output mode: \"{}\".", &self.mode).blue());
     }
 }
 
