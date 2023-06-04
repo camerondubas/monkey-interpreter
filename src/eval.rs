@@ -1,10 +1,10 @@
 use crate::{
     ast::{Expression, Program, Statement},
     lexer::Token,
-    object::{Boolean, Integer, Null, Object},
+    object::{Boolean, Integer, Object},
 };
 
-const NULL: Object = Object::Null(Null {});
+const NULL: Object = Object::Null;
 const TRUE: Object = Object::Boolean(Boolean { value: true });
 const FALSE: Object = Object::Boolean(Boolean { value: false });
 
@@ -17,6 +17,7 @@ fn eval_statements(statements: Vec<Statement>) -> Object {
     for statement in statements {
         result = match statement {
             Statement::Expression(expression) => eval_expression(expression),
+            Statement::Block(block) => eval_statements(block),
             _ => NULL,
         }
     }
@@ -37,6 +38,9 @@ fn eval_expression(expression: Expression) -> Object {
             let left_obj = eval_expression(*left);
             let right_obj = eval_expression(*right);
             eval_infix_expression(operator, left_obj, right_obj)
+        }
+        Expression::If(condition, consequence, alternative) => {
+            eval_if_expression(*condition, *consequence, alternative)
         }
         _ => NULL,
     }
@@ -110,6 +114,30 @@ fn eval_minus_operator_expression(object: Object) -> Object {
             value: -integer.value,
         }),
         _ => NULL,
+    }
+}
+
+fn eval_if_expression(
+    condition: Expression,
+    consequence: Statement,
+    alternative: Option<Box<Statement>>,
+) -> Object {
+    let condition = eval_expression(condition);
+    let is_truthy = is_truthy(condition);
+
+    match (is_truthy, alternative) {
+        (true, _) => eval_statements(vec![consequence]),
+        (false, Some(alternative)) => eval_statements(vec![*alternative]),
+        _ => NULL,
+    }
+}
+
+fn is_truthy(object: Object) -> bool {
+    match object {
+        TRUE => true,
+        FALSE => false,
+        Object::Integer(_) => true,
+        NULL => false,
     }
 }
 
@@ -199,6 +227,40 @@ mod tests {
             match evaluated {
                 Object::Boolean(bool) => assert_eq!(bool.value, expected),
                 _ => panic!("Expected Boolean, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_eval_conditional_integer() {
+        let inputs = vec![
+            ("if (true) { 10 }", 10),
+            ("if (1) { 10 }", 10),
+            ("if (1 < 2) { 10 }", 10),
+            ("if (1 > 2) { 10 } else { 20 }", 20),
+            ("if (1 < 2) { 10 } else { 20 }", 10),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Integer(integer) => assert_eq!(integer.value, expected),
+                _ => panic!("Expected Integer, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_eval_conditional_null() {
+        let inputs = vec![("if (false) { 10 }", "null"), ("if (1 > 2) { 10 }", "null")];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Null => assert_eq!(Object::Null.to_string(), expected),
+                _ => panic!("Expected Integer, got {:?}", evaluated),
             }
         }
     }

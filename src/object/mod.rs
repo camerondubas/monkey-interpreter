@@ -4,7 +4,7 @@ use std::fmt::Display;
 pub enum Object {
     Integer(Integer),
     Boolean(Boolean),
-    Null(Null),
+    Null,
 }
 
 impl Display for Object {
@@ -12,7 +12,7 @@ impl Display for Object {
         match self {
             Object::Integer(integer) => write!(f, "{}", integer.value),
             Object::Boolean(boolean) => write!(f, "{}", boolean.value),
-            Object::Null(_) => write!(f, "null"),
+            Object::Null => write!(f, "null"),
         }
     }
 }
@@ -26,6 +26,3 @@ pub struct Integer {
 pub struct Boolean {
     pub value: bool,
 }
-
-#[derive(Debug, PartialEq, Clone, Eq)]
-pub struct Null {}
