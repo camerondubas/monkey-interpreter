@@ -29,7 +29,7 @@ impl fmt::Display for Program {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Statement {
     Let(String, Expression),
     Return(Expression),
@@ -56,7 +56,7 @@ impl fmt::Display for Statement {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Expression {
     Identifier(String),
     IntegerLiteral(i64),

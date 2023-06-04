@@ -44,7 +44,6 @@ fn eval_statement(statement: Statement, environment: &mut Environment) -> Object
 
             Object::Return(Box::new(value))
         }
-        _ => NULL,
     }
 }
 
@@ -69,6 +68,23 @@ fn eval_expression(expression: Expression, environment: &mut Environment) -> Obj
         Expression::IntegerLiteral(integer) => Object::Integer(integer),
         Expression::Boolean(true) => TRUE,
         Expression::Boolean(false) => FALSE,
+        Expression::FunctionLiteral(params, body) => {
+            Object::Function(params, body, environment.clone())
+        }
+        Expression::CallExpression(function_expression, args) => {
+            let function = eval_expression(*function_expression, environment);
+            if function.is_error() {
+                return function;
+            }
+
+            let args = eval_expressions(args, environment);
+
+            if args.len() == 1 && args[0].is_error() {
+                return args[0].clone();
+            }
+
+            apply_function(function, args)
+        }
         Expression::Identifier(identifier) => eval_identifier(identifier, environment),
         Expression::PrefixExpression(prefix, right) => {
             let right_obj = eval_expression(*right, environment);
@@ -93,7 +109,6 @@ fn eval_expression(expression: Expression, environment: &mut Environment) -> Obj
         Expression::If(condition, consequence, alternative) => {
             eval_if_expression(*condition, *consequence, alternative, environment)
         }
-        _ => NULL,
     }
 }
 
@@ -188,6 +203,45 @@ fn eval_identifier(identifier: String, environment: &mut Environment) -> Object 
     }
 
     unknown_identifier_error(identifier)
+}
+
+fn eval_expressions(expressions: Vec<Expression>, environment: &mut Environment) -> Vec<Object> {
+    let mut result = vec![];
+
+    for expression in expressions {
+        let evaluated = eval_expression(expression, environment);
+        if evaluated.is_error() {
+            return vec![evaluated];
+        }
+
+        result.push(evaluated);
+    }
+
+    result
+}
+
+fn apply_function(function: Object, args: Vec<Object>) -> Object {
+    match function {
+        Object::Function(params, body, env) => {
+            let mut extended_env = Environment::new_enclosed(env);
+
+            for (idx, param) in params.iter().enumerate() {
+                if let Expression::Identifier(param_name) = param {
+                    extended_env.set(param_name.clone(), args[idx].clone());
+                } else {
+                    return Object::Error(format!("not an identifier: {}", param));
+                }
+            }
+
+            let evaluated = eval_statement(*body, &mut extended_env);
+
+            match evaluated {
+                Object::Return(value) => *value,
+                _ => evaluated,
+            }
+        }
+        _ => Object::Error(format!("not a function: {}", function.get_type())),
+    }
 }
 
 fn is_truthy(object: Object) -> bool {
@@ -418,6 +472,56 @@ mod tests {
             ("let a = 5 * 5; a;", 25),
             ("let a = 5; let b = a; b;", 5),
             ("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Integer(integer) => assert_eq!(integer, expected),
+                _ => panic!("Expected Integer, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_function_object() {
+        let input = "fn(x) { x + 2; };";
+
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::Function(params, body, _) => {
+                assert_eq!(params.len(), 1);
+                assert_eq!(params[0].to_string(), "x");
+                assert_eq!(body.to_string(), "(x + 2)");
+            }
+            _ => panic!("Expected Function, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_function_application() {
+        let inputs = vec![
+            ("let identity = fn(x) { x; }; identity(5);", 5),
+            ("let identity = fn(x) { return x; }; identity(5);", 5),
+            ("let double = fn(x) { x * 2; }; double(5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
+            ("fn(x) { x; }(5)", 5),
+            (
+                "let newAdder = fn(x) {
+                fn(y) { x + y };
+            }
+            let addTwo = newAdder(2);
+            addTwo(2);",
+                4,
+            ),
+            (
+                "let callbackHell = fn(cb) { 1 + cb() };
+                callbackHell(fn() {3 + 4});",
+                8,
+            ),
         ];
 
         for (input, expected) in inputs {
