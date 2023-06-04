@@ -1,4 +1,8 @@
+mod environment;
+
 use std::fmt::Display;
+
+pub use environment::Environment;
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Object {
@@ -21,10 +25,7 @@ impl Object {
     }
 
     pub fn is_error(&self) -> bool {
-        match self {
-            Object::Error(_) => true,
-            _ => false,
-        }
+        matches!(self, Object::Error(_))
     }
 }
 

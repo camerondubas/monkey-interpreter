@@ -5,6 +5,7 @@ use std::fmt::Display;
 use crate::{
     eval::eval,
     lexer::{Lexer, Token},
+    object::Environment,
     parser::Parser,
 };
 use colored::Colorize;
@@ -36,6 +37,7 @@ impl Display for ReplMode {
 pub struct Repl {
     mode: ReplMode,
     tracer_enabled: bool,
+    environment: Environment,
 }
 
 impl Repl {
@@ -43,6 +45,7 @@ impl Repl {
         Repl {
             mode: ReplMode::Eval,
             tracer_enabled: false,
+            environment: Environment::new(),
         }
     }
 
@@ -148,7 +151,7 @@ impl Repl {
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
-            let evaluated = eval(program);
+            let evaluated = eval(program, &mut self.environment);
             println!("{}", evaluated);
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
