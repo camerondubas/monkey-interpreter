@@ -1,12 +1,12 @@
 use crate::{
     ast::{Expression, Program, Statement},
     lexer::Token,
-    object::{Boolean, Integer, Object, Return},
+    object::Object,
 };
 
 const NULL: Object = Object::Null;
-const TRUE: Object = Object::Boolean(Boolean { value: true });
-const FALSE: Object = Object::Boolean(Boolean { value: false });
+const TRUE: Object = Object::Boolean(true);
+const FALSE: Object = Object::Boolean(false);
 
 pub fn eval(program: Program) -> Object {
     let mut result = NULL;
@@ -15,8 +15,7 @@ pub fn eval(program: Program) -> Object {
         result = eval_statement(statement);
 
         if let Object::Return(ret) = result {
-            let obj = ret.value;
-            return *obj;
+            return *ret;
         }
     }
 
@@ -29,9 +28,7 @@ fn eval_statement(statement: Statement) -> Object {
         Statement::Block(block) => eval_block_statement(block),
         Statement::Return(expression) => {
             let value = eval_expression(expression);
-            Object::Return(Return {
-                value: Box::new(value),
-            })
+            Object::Return(Box::new(value))
         }
         _ => NULL,
     }
@@ -53,7 +50,7 @@ fn eval_block_statement(block: Vec<Statement>) -> Object {
 
 fn eval_expression(expression: Expression) -> Object {
     match expression {
-        Expression::IntegerLiteral(integer) => Object::Integer(Integer { value: integer }),
+        Expression::IntegerLiteral(integer) => Object::Integer(integer),
         Expression::Boolean(true) => TRUE,
         Expression::Boolean(false) => FALSE,
         Expression::PrefixExpression(prefix, right) => {
@@ -85,42 +82,22 @@ fn eval_infix_expression(operator: Token, left: Object, right: Object) -> Object
         (Object::Integer(left), Object::Integer(right), _) => {
             eval_integer_infix_expression(operator, left, right)
         }
-        (_, _, Token::Eq) => Object::Boolean(Boolean {
-            value: left == right,
-        }),
-        (_, _, Token::NotEq) => Object::Boolean(Boolean {
-            value: left != right,
-        }),
+        (_, _, Token::Eq) => Object::Boolean(left == right),
+        (_, _, Token::NotEq) => Object::Boolean(left != right),
         _ => NULL,
     }
 }
 
-fn eval_integer_infix_expression(operator: Token, left: Integer, right: Integer) -> Object {
+fn eval_integer_infix_expression(operator: Token, left: i64, right: i64) -> Object {
     match operator {
-        Token::Plus => Object::Integer(Integer {
-            value: left.value + right.value,
-        }),
-        Token::Minus => Object::Integer(Integer {
-            value: left.value - right.value,
-        }),
-        Token::Asterisk => Object::Integer(Integer {
-            value: left.value * right.value,
-        }),
-        Token::Slash => Object::Integer(Integer {
-            value: left.value / right.value,
-        }),
-        Token::Lt => Object::Boolean(Boolean {
-            value: left.value < right.value,
-        }),
-        Token::Gt => Object::Boolean(Boolean {
-            value: left.value > right.value,
-        }),
-        Token::Eq => Object::Boolean(Boolean {
-            value: left.value == right.value,
-        }),
-        Token::NotEq => Object::Boolean(Boolean {
-            value: left.value != right.value,
-        }),
+        Token::Plus => Object::Integer(left + right),
+        Token::Minus => Object::Integer(left - right),
+        Token::Asterisk => Object::Integer(left * right),
+        Token::Slash => Object::Integer(left / right),
+        Token::Lt => Object::Boolean(left < right),
+        Token::Gt => Object::Boolean(left > right),
+        Token::Eq => Object::Boolean(left == right),
+        Token::NotEq => Object::Boolean(left != right),
         _ => panic!("Not implemented"),
     }
 }
@@ -136,9 +113,7 @@ fn eval_bang_operator_expression(object: Object) -> Object {
 
 fn eval_minus_operator_expression(object: Object) -> Object {
     match object {
-        Object::Integer(integer) => Object::Integer(Integer {
-            value: -integer.value,
-        }),
+        Object::Integer(integer) => Object::Integer(-integer),
         _ => NULL,
     }
 }
@@ -197,7 +172,7 @@ mod tests {
             let evaluated = test_eval(input);
 
             match evaluated {
-                Object::Integer(integer) => assert_eq!(integer.value, expected),
+                Object::Integer(integer) => assert_eq!(integer, expected),
                 _ => panic!("Expected Integer, got {:?}", evaluated),
             }
         }
@@ -231,7 +206,7 @@ mod tests {
             let evaluated = test_eval(input);
 
             match evaluated {
-                Object::Boolean(bool) => assert_eq!(bool.value, expected),
+                Object::Boolean(bool) => assert_eq!(bool, expected),
                 _ => panic!("Expected Boolean, got {:?}", evaluated),
             }
         }
@@ -252,7 +227,7 @@ mod tests {
             let evaluated = test_eval(input);
 
             match evaluated {
-                Object::Boolean(bool) => assert_eq!(bool.value, expected),
+                Object::Boolean(bool) => assert_eq!(bool, expected),
                 _ => panic!("Expected Boolean, got {:?}", evaluated),
             }
         }
@@ -272,7 +247,7 @@ mod tests {
             let evaluated = test_eval(input);
 
             match evaluated {
-                Object::Integer(integer) => assert_eq!(integer.value, expected),
+                Object::Integer(integer) => assert_eq!(integer, expected),
                 _ => panic!("Expected Integer, got {:?}", evaluated),
             }
         }
@@ -315,7 +290,7 @@ mod tests {
             let evaluated = test_eval(input);
 
             match evaluated {
-                Object::Integer(integer) => assert_eq!(integer.value, expected),
+                Object::Integer(integer) => assert_eq!(integer, expected),
                 _ => panic!("Expected Integer, got {:?}", evaluated),
             }
         }
