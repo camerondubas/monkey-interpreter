@@ -6,10 +6,12 @@ use crate::lexer::Token;
 pub enum ParserError {
     ExpectedIdentifier(Token),
     ExpectedInteger(Token),
+    ExpectedString(Token),
     ExpectedBoolean(Token),
     UnexpectedToken(Token, Token),
     MissingParsePrefixFunction(Token),
     IntegerParsingError(Token),
+    UnknownError(Token),
 }
 
 impl fmt::Display for ParserError {
@@ -24,6 +26,9 @@ impl fmt::Display for ParserError {
             ParserError::ExpectedInteger(token) => {
                 write!(f, "Expected an integer, got `{}`", token)
             }
+            ParserError::ExpectedString(token) => {
+                write!(f, "Expected a string, got `{}`", token)
+            }
             ParserError::ExpectedBoolean(token) => {
                 write!(f, "Expected a boolean, got `{}`", token)
             }
@@ -32,6 +37,9 @@ impl fmt::Display for ParserError {
             }
             ParserError::IntegerParsingError(token) => {
                 write!(f, "Could not parse `{}` as an integer", token)
+            }
+            ParserError::UnknownError(token) => {
+                write!(f, "Unknown Error `{}`", token)
             }
         }
     }

@@ -171,6 +171,13 @@ impl Parser {
         )
     }
 
+    fn parse_string(&mut self) -> Result<Expression, ParserError> {
+        match self.current_token.clone() {
+            Token::String(val) => Ok(Expression::StringLiteral(val)),
+            _ => Err(ParserError::ExpectedString(self.current_token.clone())),
+        }
+    }
+
     fn parse_prefix_expression(&mut self) -> Result<Expression, ParserError> {
         let operator = &self.current_token.clone();
 
@@ -324,15 +331,22 @@ impl Parser {
         expression
     }
 
+    fn parse_illegal_token(&mut self) -> Result<Expression, ParserError> {
+        let err = ParserError::UnknownError(self.current_token.clone());
+        Err(err)
+    }
+
     fn parse_prefix_fns(token: &Token) -> Option<PrefixParseFn> {
         match token {
             Token::Identifier(_) => Some(Parser::parse_identifier),
             Token::Integer(_) => Some(Parser::parse_integer),
+            Token::String(_) => Some(Parser::parse_string),
             Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
             Token::True | Token::False => Some(Parser::parse_boolean),
             Token::LeftParen => Some(Parser::parse_grouped_expression),
             Token::If => Some(Parser::parse_if_expression),
             Token::Function => Some(Parser::parse_fn_literal),
+            Token::Illegal(_) => Some(Parser::parse_illegal_token),
             _ => None,
         }
     }
@@ -471,6 +485,32 @@ mod tests {
             (
                 "10234;",
                 Statement::Expression(Expression::IntegerLiteral(10234)),
+            ),
+        ];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
+    fn test_string_literal() {
+        let inputs = vec![
+            (
+                "\"Hello World\"",
+                Statement::Expression(Expression::StringLiteral("Hello World".to_string())),
+            ),
+            (
+                "\"Helloworld\"",
+                Statement::Expression(Expression::StringLiteral("Helloworld".to_string())),
+            ),
+            (
+                "\"with1234numbers\"",
+                Statement::Expression(Expression::StringLiteral("with1234numbers".to_string())),
+            ),
+            (
+                "\"with->=_'_|+!#@symbols;\"",
+                Statement::Expression(Expression::StringLiteral(
+                    "with->=_'_|+!#@symbols;".to_string(),
+                )),
             ),
         ];
 

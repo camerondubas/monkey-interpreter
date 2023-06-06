@@ -3,6 +3,8 @@ mod tokens;
 
 pub use tokens::Token;
 
+const EOF: u8 = 0;
+
 pub struct Lexer {
     input: Vec<u8>,
     position: usize,      // current position
@@ -77,7 +79,11 @@ impl Lexer {
                 return Lexer::get_identifier_token(identifier);
             }
             b'0'..=b'9' => return Token::Integer(self.read_number()),
-            0 => Token::Eof,
+            b'"' => match self.read_string() {
+                Ok(str) => Token::String(str),
+                Err(str) => Token::Illegal(str),
+            },
+            EOF => Token::Eof,
             _ => Token::Illegal(String::from("Invalid token")),
         };
         self.read_char();
@@ -107,6 +113,21 @@ impl Lexer {
             .to_string()
     }
 
+    fn read_string(&mut self) -> Result<String, String> {
+        self.read_char();
+        let position = self.position;
+        while self.ch != b'"' {
+            if self.ch == EOF {
+                return Err("Unterminated String".to_string());
+            }
+
+            self.read_char();
+        }
+
+        String::from_utf8(self.input[position..self.position].to_vec())
+            .map_err(|err| err.to_string())
+    }
+
     fn skip_whitespace(&mut self) {
         while self.ch == b' ' || self.ch == b'\t' || self.ch == b'\n' || self.ch == b'\r' {
             self.read_char();
@@ -129,8 +150,8 @@ impl Lexer {
 
 #[cfg(test)]
 mod test {
-
     use super::{Lexer, Token};
+
     #[test]
     fn test_next_token() {
         let input = "let five = 5;
@@ -152,6 +173,9 @@ mod test {
 
         10 == 10;
         10 != 9;
+
+        \"foobar\"
+        \"foo bar\"
         ";
 
         let tokens = vec![
@@ -228,7 +252,29 @@ mod test {
             Token::NotEq,
             Token::Integer(String::from("9")),
             Token::Semicolon,
+            Token::String(String::from("foobar")),
+            Token::String(String::from("foo bar")),
             Token::Eof,
+        ];
+
+        let mut lexer = Lexer::new(input);
+        for token in tokens {
+            let _token = lexer.next_token();
+            println!("token: {:?}", _token);
+
+            assert_eq!(_token, token);
+        }
+    }
+
+    #[test]
+    fn test_illegal_tokens() {
+        let input = "let five = \"something";
+
+        let tokens = vec![
+            Token::Let,
+            Token::Identifier(String::from("five")),
+            Token::Assign,
+            Token::Illegal("Unterminated String".to_string()),
         ];
 
         let mut lexer = Lexer::new(input);

@@ -60,6 +60,7 @@ impl fmt::Display for Statement {
 pub enum Expression {
     Identifier(String),
     IntegerLiteral(i64),
+    StringLiteral(String),
     PrefixExpression(Token, Box<Expression>),
     InfixExpression(Box<Expression>, Token, Box<Expression>),
     Boolean(bool),
@@ -73,6 +74,7 @@ impl fmt::Display for Expression {
         match self {
             Expression::Identifier(value) => write!(f, "{}", value),
             Expression::IntegerLiteral(value) => write!(f, "{}", value),
+            Expression::StringLiteral(value) => write!(f, "{}", value),
             Expression::Boolean(value) => write!(f, "{}", value),
             Expression::PrefixExpression(operator_token, right) => match operator_token {
                 Token::Bang | Token::Minus => write!(f, "({}{})", operator_token, right),

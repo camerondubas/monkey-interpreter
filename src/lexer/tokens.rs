@@ -17,6 +17,7 @@ pub enum Token {
     // Identifiers + literals
     Identifier(String),
     Integer(String),
+    String(String),
 
     // Operators
     Assign,
@@ -55,6 +56,7 @@ impl Display for Token {
             Token::Return => "return",
             Token::Identifier(value) => value,
             Token::Integer(value) => value,
+            Token::String(value) => value,
             Token::Assign => "=",
             Token::Plus => "+",
             Token::Minus => "-",

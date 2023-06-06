@@ -66,6 +66,7 @@ fn eval_block_statement(block: Vec<Statement>, environment: &mut Environment) ->
 fn eval_expression(expression: Expression, environment: &mut Environment) -> Object {
     match expression {
         Expression::IntegerLiteral(integer) => Object::Integer(integer),
+        Expression::StringLiteral(value) => Object::String(value),
         Expression::Boolean(true) => TRUE,
         Expression::Boolean(false) => FALSE,
         Expression::FunctionLiteral(params, body) => {
@@ -122,11 +123,11 @@ fn eval_prefix_expression(prefix: Token, right: Object) -> Object {
 
 fn eval_infix_expression(operator: Token, left: Object, right: Object) -> Object {
     match (left.clone(), right.clone(), operator.clone()) {
-        (Object::Integer(_), Object::Integer(_), _) => {
-            eval_integer_infix_expression(operator, left, right)
-        }
         (_, _, Token::Eq) => Object::Boolean(left == right),
         (_, _, Token::NotEq) => Object::Boolean(left != right),
+        (Object::Integer(l), Object::Integer(r), _) => eval_integer_infix(operator, l, r),
+        (Object::String(l), Object::String(r), _) => eval_string_infix(operator, l, r),
+        (Object::Boolean(l), Object::Boolean(r), _) => eval_boolean_infix(operator, l, r),
         _ => {
             if left.get_type() != right.get_type() {
                 return type_mismatch_error(left, operator, right);
@@ -137,27 +138,38 @@ fn eval_infix_expression(operator: Token, left: Object, right: Object) -> Object
     }
 }
 
-fn eval_integer_infix_expression(operator: Token, left_obj: Object, right_obj: Object) -> Object {
-    match (left_obj.clone(), right_obj.clone()) {
-        (Object::Integer(left), Object::Integer(right)) => match operator {
-            Token::Plus => Object::Integer(left + right),
-            Token::Minus => Object::Integer(left - right),
-            Token::Asterisk => Object::Integer(left * right),
-            Token::Slash => Object::Integer(left / right),
-            Token::Lt => Object::Boolean(left < right),
-            Token::Gt => Object::Boolean(left > right),
-            Token::Eq => Object::Boolean(left == right),
-            Token::NotEq => Object::Boolean(left != right),
-            _ => unknown_operator_error(Some(left_obj), operator, right_obj),
-        },
-        (Object::Boolean(left), Object::Boolean(right)) => match operator {
-            Token::Lt => Object::Boolean(!left & right),
-            Token::Gt => Object::Boolean(left & !right),
-            Token::Eq => Object::Boolean(left == right),
-            Token::NotEq => Object::Boolean(left != right),
-            _ => unknown_operator_error(Some(left_obj), operator, right_obj),
-        },
-        _ => type_mismatch_error(left_obj, operator, right_obj),
+fn eval_integer_infix(operator: Token, left: i64, right: i64) -> Object {
+    match operator {
+        Token::Plus => Object::Integer(left + right),
+        Token::Minus => Object::Integer(left - right),
+        Token::Asterisk => Object::Integer(left * right),
+        Token::Slash => Object::Integer(left / right),
+        Token::Lt => Object::Boolean(left < right),
+        Token::Gt => Object::Boolean(left > right),
+        _ => unknown_operator_error(
+            Some(Object::Integer(left)),
+            operator,
+            Object::Integer(right),
+        ),
+    }
+}
+
+fn eval_string_infix(operator: Token, left: String, right: String) -> Object {
+    match operator {
+        Token::Plus => Object::String(format!("{}{}", left, right)),
+        _ => unknown_operator_error(Some(Object::String(left)), operator, Object::String(right)),
+    }
+}
+
+fn eval_boolean_infix(operator: Token, left: bool, right: bool) -> Object {
+    match operator {
+        Token::Lt => Object::Boolean(!left & right),
+        Token::Gt => Object::Boolean(left & !right),
+        _ => unknown_operator_error(
+            Some(Object::Boolean(left)),
+            operator,
+            Object::Boolean(right),
+        ),
     }
 }
 
@@ -314,6 +326,30 @@ mod tests {
             match evaluated {
                 Object::Integer(integer) => assert_eq!(integer, expected),
                 _ => panic!("Expected Integer, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_eval_string() {
+        let inputs = vec![
+            ("\"5\"", "5"),
+            ("\"foo\"", "foo"),
+            ("\"test@domain.com\"", "test@domain.com"),
+            ("\"S-a=>_ft432||rst+~ascc\"", "S-a=>_ft432||rst+~ascc"),
+            (
+                "\"(5 + 10 * 2 + 15 / 3) * 2 + -10\"",
+                "(5 + 10 * 2 + 15 / 3) * 2 + -10",
+            ),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            println!("STRING {}", evaluated);
+            match evaluated {
+                Object::String(value) => assert_eq!(value, expected),
+                _ => panic!("Expected String, got {:?}", evaluated),
             }
         }
     }

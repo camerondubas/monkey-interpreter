@@ -9,6 +9,7 @@ use crate::ast::{Expression, Statement};
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Object {
     Integer(i64),
+    String(String),
     Boolean(bool),
     Return(Box<Object>),
     Function(Vec<Expression>, Box<Statement>, Environment),
@@ -20,6 +21,7 @@ impl Object {
     pub fn get_type(&self) -> &str {
         match self {
             Object::Integer(_) => "INTEGER",
+            Object::String(_) => "STRING",
             Object::Boolean(_) => "BOOLEAN",
             Object::Return(_) => "RETURN",
             Object::Function(_, _, _) => "FUNCTION",
@@ -37,6 +39,7 @@ impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Object::Integer(integer) => write!(f, "{}", integer),
+            Object::String(string) => write!(f, "\"{}\"", string),
             Object::Boolean(boolean) => write!(f, "{}", boolean),
             Object::Return(ret) => write!(f, "{}", ret),
             Object::Function(params, body, _) => {
