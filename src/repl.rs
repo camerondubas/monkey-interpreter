@@ -5,7 +5,7 @@ use std::fmt::Display;
 use crate::{
     eval::eval,
     lexer::{Lexer, Token},
-    object::Environment,
+    object::{Environment, Object},
     parser::Parser,
 };
 use colored::Colorize;
@@ -152,7 +152,15 @@ impl Repl {
 
         if parser.errors.is_empty() {
             let evaluated = eval(program, &mut self.environment);
-            println!("{}", evaluated);
+            let colorized_string = match evaluated {
+                Object::Integer(_) => evaluated.to_string().yellow(),
+                Object::Boolean(_) => evaluated.to_string().yellow(),
+                Object::String(_) => evaluated.to_string().green(),
+                Object::Function(_, _, _) => evaluated.to_string().bright_blue(),
+                Object::Error(_) => evaluated.to_string().red(),
+                _ => evaluated.to_string().white(),
+            };
+            println!("{}", colorized_string.bold());
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
             for error in parser.errors {
