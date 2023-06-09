@@ -133,23 +133,19 @@ impl Parser {
             ParserError::MissingParsePrefixFunction(self.current_token.clone()),
         )?;
 
-        let mut left_expression = prefix_expression(self);
-
-        if left_expression.is_err() {
-            return left_expression;
-        }
+        let mut left_expression = prefix_expression(self)?;
 
         while self.peek_token != Token::Semicolon && precedence < self.peek_precedence() {
             left_expression = match Parser::parse_infix_fns(&self.peek_token) {
                 Some(infix) => {
                     self.next_token();
-                    infix(self, left_expression.unwrap())
+                    infix(self, left_expression)?
                 }
                 None => left_expression,
             }
         }
 
-        left_expression
+        Ok(left_expression)
     }
 
     fn parse_identifier(&mut self) -> Result<Expression, ParserError> {
@@ -174,7 +170,7 @@ impl Parser {
     fn parse_string(&mut self) -> Result<Expression, ParserError> {
         match self.current_token.clone() {
             Token::String(val) => Ok(Expression::StringLiteral(val)),
-            _ => Err(ParserError::ExpectedString(self.current_token.clone())),
+            err => Err(ParserError::ExpectedString(err)),
         }
     }
 
@@ -381,14 +377,14 @@ impl Parser {
     }
 
     fn peek_precedence(&self) -> Precedence {
-        self.get_operator_precedence(self.peek_token.clone())
+        self.get_operator_precedence(&self.peek_token)
     }
 
     fn current_precedence(&self) -> Precedence {
-        self.get_operator_precedence(self.current_token.clone())
+        self.get_operator_precedence(&self.current_token)
     }
 
-    fn get_operator_precedence(&self, operator: Token) -> Precedence {
+    fn get_operator_precedence(&self, operator: &Token) -> Precedence {
         match operator {
             Token::Plus => Precedence::Sum,
             Token::Minus => Precedence::Sum,
