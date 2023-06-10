@@ -13,6 +13,7 @@ pub enum Object {
     Boolean(bool),
     Return(Box<Object>),
     Function(Vec<Expression>, Box<Statement>, Environment),
+    BuiltInFunction(fn(args: Vec<Object>) -> Object),
     Error(String),
     Null,
 }
@@ -25,6 +26,7 @@ impl Object {
             Object::Boolean(_) => "BOOLEAN",
             Object::Return(_) => "RETURN",
             Object::Function(_, _, _) => "FUNCTION",
+            Object::BuiltInFunction(_) => "BUILTIN",
             Object::Error(_) => "ERROR",
             Object::Null => "NULL",
         }
@@ -49,6 +51,7 @@ impl Display for Object {
                     .collect::<Vec<String>>();
                 write!(f, "fn({}) {{\n  {} \n}}", params.join(", "), body)
             }
+            Object::BuiltInFunction(_) => write!(f, "builtin object"),
             Object::Error(message) => write!(f, "ERROR: {}", message),
             Object::Null => write!(f, "null"),
         }

@@ -4,6 +4,10 @@ use crate::{
     object::{Environment, Object},
 };
 
+mod builtins;
+
+use self::builtins::get_builtin_fn;
+
 const NULL: Object = Object::Null;
 const TRUE: Object = Object::Boolean(true);
 const FALSE: Object = Object::Boolean(false);
@@ -214,6 +218,10 @@ fn eval_identifier(identifier: String, environment: &mut Environment) -> Object 
         return env_identifier.clone();
     }
 
+    if let Some(builtin) = get_builtin_fn(&identifier) {
+        return builtin;
+    }
+
     unknown_identifier_error(identifier)
 }
 
@@ -252,6 +260,7 @@ fn apply_function(function: Object, args: Vec<Object>) -> Object {
                 _ => evaluated,
             }
         }
+        Object::BuiltInFunction(builtin) => builtin(args),
         _ => Object::Error(format!("not a function: {}", function.get_type())),
     }
 }
@@ -533,6 +542,41 @@ mod tests {
                 assert_eq!(body.to_string(), "(x + 2)");
             }
             _ => panic!("Expected Function, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_builtin_functions() {
+        let inputs = vec![
+            ("len(\"\")", 0),
+            ("len(\"four\")", 4),
+            ("len(\"hello world\")", 11),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Integer(val) => assert_eq!(val, expected),
+                _ => panic!("Expected Integer, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_builtin_fn_errors() {
+        let inputs = vec![
+            ("len()", "len expects 1 argument"),
+            ("len(1)", "argument to `len` not supported, got Integer(1)"),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Error(err) => assert_eq!(err, expected),
+                _ => panic!("Expected Error, got {:?}", evaluated),
+            }
         }
     }
 
