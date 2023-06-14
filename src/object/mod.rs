@@ -11,6 +11,7 @@ pub enum Object {
     Integer(i64),
     String(String),
     Boolean(bool),
+    Array(Vec<Object>),
     Return(Box<Object>),
     Function(Vec<Expression>, Box<Statement>, Environment),
     BuiltInFunction(fn(args: Vec<Object>) -> Object),
@@ -24,6 +25,7 @@ impl Object {
             Object::Integer(_) => "INTEGER",
             Object::String(_) => "STRING",
             Object::Boolean(_) => "BOOLEAN",
+            Object::Array(_) => "ARRAY",
             Object::Return(_) => "RETURN",
             Object::Function(_, _, _) => "FUNCTION",
             Object::BuiltInFunction(_) => "BUILTIN",
@@ -43,6 +45,10 @@ impl Display for Object {
             Object::Integer(integer) => write!(f, "{}", integer),
             Object::String(string) => write!(f, "\"{}\"", string),
             Object::Boolean(boolean) => write!(f, "{}", boolean),
+            Object::Array(items) => {
+                let items = items.iter().map(|i| i.to_string()).collect::<Vec<String>>();
+                write!(f, "[{}]", items.join(", "))
+            }
             Object::Return(ret) => write!(f, "{}", ret),
             Object::Function(params, body, _) => {
                 let params = params

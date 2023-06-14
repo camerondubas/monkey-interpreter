@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }
@@ -61,6 +61,7 @@ pub enum Expression {
     Identifier(String),
     IntegerLiteral(i64),
     StringLiteral(String),
+    ArrayLiteral(Vec<Expression>),
     PrefixExpression(Token, Box<Expression>),
     InfixExpression(Box<Expression>, Token, Box<Expression>),
     Boolean(bool),
@@ -117,6 +118,10 @@ impl fmt::Display for Expression {
             Expression::CallExpression(function, args) => {
                 let args_str: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
                 write!(f, "{}({})", function, args_str.join(", "))
+            }
+            Expression::ArrayLiteral(items) => {
+                let args_str: Vec<String> = items.iter().map(|item| item.to_string()).collect();
+                write!(f, "[{}]", args_str.join(", "))
             }
         }
     }
@@ -190,6 +195,19 @@ mod tests {
         );
 
         let output = "add(a, b, c)";
+
+        assert_eq!(expression.to_string(), output.to_string());
+    }
+
+    #[test]
+    fn test_array_strignify() {
+        let expression = Expression::ArrayLiteral(vec![
+            Expression::Identifier("a".to_string()),
+            Expression::IntegerLiteral(7),
+            Expression::Boolean(true),
+        ]);
+
+        let output = "[a, 7, true]";
 
         assert_eq!(expression.to_string(), output.to_string());
     }

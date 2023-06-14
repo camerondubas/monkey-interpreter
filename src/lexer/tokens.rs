@@ -40,6 +40,8 @@ pub enum Token {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
 }
 
 impl Display for Token {
@@ -73,6 +75,8 @@ impl Display for Token {
             Token::RightParen => ")",
             Token::LeftBrace => "{",
             Token::RightBrace => "}",
+            Token::LeftBracket => "[",
+            Token::RightBracket => "]",
         };
 
         write!(f, "{}", token)

@@ -73,6 +73,7 @@ fn eval_expression(expression: Expression, environment: &mut Environment) -> Obj
         Expression::StringLiteral(value) => Object::String(value),
         Expression::Boolean(true) => TRUE,
         Expression::Boolean(false) => FALSE,
+        Expression::ArrayLiteral(items) => eval_array_literal(items, environment),
         Expression::FunctionLiteral(params, body) => {
             Object::Function(params, body, environment.clone())
         }
@@ -238,6 +239,15 @@ fn eval_expressions(expressions: Vec<Expression>, environment: &mut Environment)
     }
 
     result
+}
+
+fn eval_array_literal(items: Vec<Expression>, environment: &mut Environment) -> Object {
+    let item_objs = items
+        .iter()
+        .map(|i| eval_expression(i.clone(), environment))
+        .collect::<Vec<Object>>();
+
+    Object::Array(item_objs)
 }
 
 fn apply_function(function: Object, args: Vec<Object>) -> Object {
@@ -576,6 +586,30 @@ mod tests {
             match evaluated {
                 Object::Error(err) => assert_eq!(err, expected),
                 _ => panic!("Expected Error, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_array_literal() {
+        let inputs = vec![
+            ("[]", vec![]),
+            (
+                "[1, true, \"test\"]",
+                vec![
+                    Object::Integer(1),
+                    Object::Boolean(true),
+                    Object::String("test".to_string()),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Array(val) => assert_eq!(val, expected),
+                _ => panic!("Expected Array, got {:?}", evaluated),
             }
         }
     }

@@ -289,32 +289,9 @@ impl Parser {
     }
 
     fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParserError> {
-        let arguments = self.parse_call_arguments()?;
+        let arguments = self.parse_expression_list(Token::RightParen)?;
 
         Ok(Expression::CallExpression(Box::new(function), arguments))
-    }
-
-    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, ParserError> {
-        let mut arguments = vec![];
-
-        if self.peek_token == Token::RightParen {
-            self.next_token();
-            return Ok(arguments);
-        }
-
-        self.next_token();
-
-        arguments.push(self.parse_expression(Precedence::Lowest)?);
-
-        while self.peek_token == Token::Comma {
-            self.next_token();
-            self.next_token();
-            arguments.push(self.parse_expression(Precedence::Lowest)?);
-        }
-
-        self.expect_peek(Token::RightParen)?;
-
-        Ok(arguments)
     }
 
     fn parse_grouped_expression(&mut self) -> Result<Expression, ParserError> {
@@ -327,9 +304,39 @@ impl Parser {
         expression
     }
 
+    fn parse_expression_list(
+        &mut self,
+        closing_token: Token,
+    ) -> Result<Vec<Expression>, ParserError> {
+        let mut list = vec![];
+
+        if self.peek_token == closing_token {
+            self.next_token();
+            return Ok(list);
+        }
+
+        self.next_token();
+
+        list.push(self.parse_expression(Precedence::Lowest)?);
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+            self.next_token();
+            list.push(self.parse_expression(Precedence::Lowest)?);
+        }
+
+        self.expect_peek(closing_token)?;
+
+        Ok(list)
+    }
+
+    fn parse_array(&mut self) -> Result<Expression, ParserError> {
+        let items = self.parse_expression_list(Token::RightBracket)?;
+        Ok(Expression::ArrayLiteral(items))
+    }
+
     fn parse_illegal_token(&mut self) -> Result<Expression, ParserError> {
-        let err = ParserError::UnknownError(self.current_token.clone());
-        Err(err)
+        Err(ParserError::UnknownError(self.current_token.clone()))
     }
 
     fn parse_prefix_fns(token: &Token) -> Option<PrefixParseFn> {
@@ -342,6 +349,7 @@ impl Parser {
             Token::LeftParen => Some(Parser::parse_grouped_expression),
             Token::If => Some(Parser::parse_if_expression),
             Token::Function => Some(Parser::parse_fn_literal),
+            Token::LeftBracket => Some(Parser::parse_array),
             Token::Illegal(_) => Some(Parser::parse_illegal_token),
             _ => None,
         }
@@ -605,6 +613,26 @@ mod tests {
                     ),
                 ],
             )),
+        )];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
+    fn test_array() {
+        let inputs = vec![(
+            "[a, 1, true, fn() { return false }]",
+            Statement::Expression(Expression::ArrayLiteral(vec![
+                Expression::Identifier("a".to_string()),
+                Expression::IntegerLiteral(1),
+                Expression::Boolean(true),
+                Expression::FunctionLiteral(
+                    vec![],
+                    Box::new(Statement::Block(vec![Statement::Return(
+                        Expression::Boolean(false),
+                    )])),
+                ),
+            ])),
         )];
 
         expect_inputs_to_match(inputs);
