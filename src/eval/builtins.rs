@@ -2,6 +2,15 @@ use crate::object::Object;
 
 use super::out_of_range_error;
 
+pub fn get_builtin_fn(ident: &str) -> Option<Object> {
+    match ident {
+        "len" => Some(Object::BuiltInFunction(len)),
+        "first" => Some(Object::BuiltInFunction(first)),
+        "last" => Some(Object::BuiltInFunction(last)),
+        _ => None,
+    }
+}
+
 fn len(args: Vec<Object>) -> Object {
     match args.first() {
         Some(Object::Array(items)) => Object::Integer(items.len() as i64),
@@ -22,11 +31,14 @@ fn first(args: Vec<Object>) -> Object {
     }
 }
 
-pub fn get_builtin_fn(ident: &str) -> Option<Object> {
-    match ident {
-        "len" => Some(Object::BuiltInFunction(len)),
-        "first" => Some(Object::BuiltInFunction(first)),
-        _ => None,
+fn last(args: Vec<Object>) -> Object {
+    match args.first() {
+        Some(Object::Array(items)) => items
+            .last()
+            .unwrap_or(&out_of_range_error(items.len(), 0))
+            .clone(),
+        Some(obj) => Object::Error(format!("argument to `last` not supported, got {:?}", obj)),
+        None => Object::Error("`last` expects 1 argument".to_string()),
     }
 }
 
@@ -93,6 +105,25 @@ mod tests {
     #[test]
     fn test_first_empty_array() {
         let evaluated = first(vec![Object::Array(vec![])]);
+        match evaluated {
+            Object::Error(_) => (),
+            _ => panic!("expected error"),
+        }
+    }
+
+    #[test]
+    fn test_array_last() {
+        let evaluated = last(vec![Object::Array(vec![
+            Object::Integer(1),
+            Object::Integer(2),
+            Object::Integer(3),
+        ])]);
+        assert_eq!(evaluated, Object::Integer(3));
+    }
+
+    #[test]
+    fn test_last_empty_array() {
+        let evaluated = last(vec![Object::Array(vec![])]);
         match evaluated {
             Object::Error(_) => (),
             _ => panic!("expected error"),
