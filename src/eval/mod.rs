@@ -597,6 +597,9 @@ mod tests {
             ("len(\"\")", 0),
             ("len(\"four\")", 4),
             ("len(\"hello world\")", 11),
+            ("len([])", 0),
+            ("len([1,2,3])", 3),
+            ("let a = \"a\"; len([a])", 1),
         ];
 
         for (input, expected) in inputs {
@@ -612,7 +615,7 @@ mod tests {
     #[test]
     fn test_builtin_fn_errors() {
         let inputs = vec![
-            ("len()", "len expects 1 argument"),
+            ("len()", "`len` expects 1 argument"),
             ("len(1)", "argument to `len` not supported, got Integer(1)"),
         ];
 
