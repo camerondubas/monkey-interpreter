@@ -73,6 +73,7 @@ fn eval_expression(expression: Expression, environment: &mut Environment) -> Obj
         Expression::StringLiteral(value) => Object::String(value),
         Expression::Boolean(true) => TRUE,
         Expression::Boolean(false) => FALSE,
+        Expression::Index(left, idx) => eval_index(*left, *idx, environment),
         Expression::ArrayLiteral(items) => eval_array_literal(items, environment),
         Expression::FunctionLiteral(params, body) => {
             Object::Function(params, body, environment.clone())
@@ -135,7 +136,7 @@ fn eval_infix_expression(operator: Token, left: Object, right: Object) -> Object
         (Object::Boolean(l), Object::Boolean(r), _) => eval_boolean_infix(operator, l, r),
         _ => {
             if left.get_type() != right.get_type() {
-                return type_mismatch_error(left, operator, right);
+                return operator_type_mismatch_error(left, operator, right);
             }
 
             unknown_operator_error(Some(left), operator, right)
@@ -250,6 +251,26 @@ fn eval_array_literal(items: Vec<Expression>, environment: &mut Environment) -> 
     Object::Array(item_objs)
 }
 
+fn eval_index(left: Expression, idx: Expression, environment: &mut Environment) -> Object {
+    let left_obj = eval_expression(left, environment);
+    let idx_obj = eval_expression(idx, environment);
+
+    let idx_int = match idx_obj {
+        Object::Integer(i) => i,
+        Object::Error(_) => return idx_obj,
+        _ => return type_mismatch_error(Object::Integer(0), idx_obj),
+    };
+
+    match left_obj {
+        Object::Array(items) => match items.get(idx_int as usize) {
+            Some(val) => val.clone(),
+            None => out_of_range_error(items.len(), idx_int as usize),
+        },
+        Object::Error(_) => left_obj,
+        _ => type_mismatch_error(Object::Array(vec![]), left_obj),
+    }
+}
+
 fn apply_function(function: Object, args: Vec<Object>) -> Object {
     match function {
         Object::Function(params, body, env) => {
@@ -285,12 +306,27 @@ fn is_truthy(object: Object) -> bool {
     }
 }
 
-fn type_mismatch_error(left: Object, operator: Token, right: Object) -> Object {
+fn operator_type_mismatch_error(left: Object, operator: Token, right: Object) -> Object {
     Object::Error(format!(
         "type mismatch: {} {} {}",
         left.get_type(),
         operator,
         right.get_type()
+    ))
+}
+
+fn type_mismatch_error(expected: Object, actual: Object) -> Object {
+    Object::Error(format!(
+        "type mismatch: expected ({}), got ({})",
+        expected.get_type(),
+        actual.get_type()
+    ))
+}
+
+fn out_of_range_error(len: usize, idx: usize) -> Object {
+    Object::Error(format!(
+        "out of range error: cannot access index {} for array of length {}",
+        len, idx
     ))
 }
 
@@ -609,6 +645,49 @@ mod tests {
 
             match evaluated {
                 Object::Array(val) => assert_eq!(val, expected),
+                _ => panic!("Expected Array, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_array_index() {
+        let inputs = vec![
+            ("[1, 2, 3][0]", 1),
+            ("[1, 2, 3][1]", 2),
+            ("[1, 2, 3][2]", 3),
+            ("let i = 0; [1][i];", 1),
+            ("[1, 2, 3][1 + 1];", 3),
+            ("let myArray = [1, 2, 3]; myArray[2];", 3),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                6,
+            ),
+            ("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Integer(val) => assert_eq!(val, expected),
+                _ => panic!("Expected Array, got {:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_array_index_error() {
+        let inputs = vec![
+            ("[1, 2, 3][3]", out_of_range_error(3, 3)),
+            ("[1, 2, 3][5]", out_of_range_error(3, 5)),
+        ];
+
+        for (input, expected) in inputs {
+            let evaluated = test_eval(input);
+
+            match evaluated {
+                Object::Error(val) => assert_eq!(format!("ERROR: {}", val), expected.to_string()),
                 _ => panic!("Expected Array, got {:?}", evaluated),
             }
         }

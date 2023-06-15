@@ -18,6 +18,7 @@ enum Precedence {
     Product,
     Prefix,
     Call,
+    Index,
 }
 
 type PrefixParseFn = fn(&mut Parser) -> Result<Expression, ParserError>;
@@ -335,6 +336,16 @@ impl Parser {
         Ok(Expression::ArrayLiteral(items))
     }
 
+    fn parse_index_expression(&mut self, left: Expression) -> Result<Expression, ParserError> {
+        self.next_token();
+
+        let idx = self.parse_expression(Precedence::Lowest)?;
+
+        self.expect_peek(Token::RightBracket)?;
+
+        Ok(Expression::Index(Box::new(left), Box::new(idx)))
+    }
+
     fn parse_illegal_token(&mut self) -> Result<Expression, ParserError> {
         Err(ParserError::UnknownError(self.current_token.clone()))
     }
@@ -366,6 +377,7 @@ impl Parser {
             | Token::Eq
             | Token::NotEq => Some(Parser::parse_infix_expression),
             Token::LeftParen => Some(Parser::parse_call_expression),
+            Token::LeftBracket => Some(Parser::parse_index_expression),
             _ => None,
         }
     }
@@ -403,6 +415,7 @@ impl Parser {
             Token::Eq => Precedence::Equals,
             Token::NotEq => Precedence::Equals,
             Token::LeftParen => Precedence::Call,
+            Token::LeftBracket => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -639,6 +652,19 @@ mod tests {
     }
 
     #[test]
+    fn test_index() {
+        let inputs = vec![(
+            "a[7]",
+            Statement::Expression(Expression::Index(
+                Box::new(Expression::Identifier("a".to_string())),
+                Box::new(Expression::IntegerLiteral(7)),
+            )),
+        )];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
     fn test_prefix_expression() {
         let inputs = vec![
             (
@@ -804,6 +830,14 @@ mod tests {
             (
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
+            ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
             ),
         ];
 

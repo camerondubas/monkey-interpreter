@@ -68,6 +68,7 @@ pub enum Expression {
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     FunctionLiteral(Vec<Expression>, Box<Statement>),
     CallExpression(Box<Expression>, Vec<Expression>),
+    Index(Box<Expression>, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -77,6 +78,7 @@ impl fmt::Display for Expression {
             Expression::IntegerLiteral(value) => write!(f, "{}", value),
             Expression::StringLiteral(value) => write!(f, "{}", value),
             Expression::Boolean(value) => write!(f, "{}", value),
+            Expression::Index(left, index) => write!(f, "({}[{}])", left, index),
             Expression::PrefixExpression(operator_token, right) => match operator_token {
                 Token::Bang | Token::Minus => write!(f, "({}{})", operator_token, right),
                 _ => panic!("Invalid Prefix Token: {:?}", operator_token),
@@ -208,6 +210,17 @@ mod tests {
         ]);
 
         let output = "[a, 7, true]";
+
+        assert_eq!(expression.to_string(), output.to_string());
+    }
+    #[test]
+    fn test_index_strignify() {
+        let expression = Expression::Index(
+            Box::new(Expression::Identifier("a".to_string())),
+            Box::new(Expression::IntegerLiteral(7)),
+        );
+
+        let output = "(a[7])";
 
         assert_eq!(expression.to_string(), output.to_string());
     }
