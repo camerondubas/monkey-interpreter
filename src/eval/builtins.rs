@@ -3,15 +3,18 @@ use crate::object::Object;
 use super::out_of_range_error;
 
 pub fn get_builtin_fn(ident: &str) -> Option<Object> {
-    match ident {
-        "len" => Some(Object::BuiltInFunction(len)),
-        "first" => Some(Object::BuiltInFunction(first)),
-        "last" => Some(Object::BuiltInFunction(last)),
-        "push" => Some(Object::BuiltInFunction(push)),
-        "pop" => Some(Object::BuiltInFunction(pop)),
-        "range" => Some(Object::BuiltInFunction(range)),
-        _ => None,
-    }
+    let builtin = match ident {
+        "len" => Object::BuiltInFunction(len),
+        "first" => Object::BuiltInFunction(first),
+        "last" => Object::BuiltInFunction(last),
+        "push" => Object::BuiltInFunction(push),
+        "pop" => Object::BuiltInFunction(pop),
+        "range" => Object::BuiltInFunction(range),
+        "puts" => Object::BuiltInFunction(puts),
+        _ => return None,
+    };
+
+    Some(builtin)
 }
 
 fn len(args: Vec<Object>) -> Object {
@@ -101,6 +104,13 @@ fn range(args: Vec<Object>) -> Object {
         )),
         _ => Object::Error("`range` expects 3 arguments".to_string()),
     }
+}
+
+fn puts(args: Vec<Object>) -> Object {
+    for arg in args {
+        println!("{}", arg);
+    }
+    Object::Null
 }
 
 #[cfg(test)]
@@ -327,5 +337,39 @@ mod tests {
             Object::Error(_) => (),
             _ => panic!("expected error"),
         }
+    }
+
+    #[test]
+    fn test_range_bad_type_error() {
+        let evaluated = range(vec![
+            Object::Integer(2),
+            Object::Integer(1),
+            Object::Integer(3),
+        ]);
+        match evaluated {
+            Object::Error(_) => (),
+            _ => panic!("expected error"),
+        }
+    }
+
+    #[test]
+    fn test_puts() {
+        let evaluated = puts(vec![Object::String("test".to_string())]);
+        assert_eq!(evaluated, Object::Null);
+    }
+
+    #[test]
+    fn test_puts_no_args() {
+        let evaluated = puts(vec![]);
+        assert_eq!(evaluated, Object::Null);
+    }
+
+    #[test]
+    fn test_puts_multiple_args() {
+        let evaluated = puts(vec![
+            Object::String("test".to_string()),
+            Object::String("test2".to_string()),
+        ]);
+        assert_eq!(evaluated, Object::Null);
     }
 }
