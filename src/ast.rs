@@ -62,6 +62,7 @@ pub enum Expression {
     IntegerLiteral(i64),
     StringLiteral(String),
     ArrayLiteral(Vec<Expression>),
+    HashLiteral(Vec<(Expression, Expression)>),
     PrefixExpression(Token, Box<Expression>),
     InfixExpression(Box<Expression>, Token, Box<Expression>),
     Boolean(bool),
@@ -124,6 +125,13 @@ impl fmt::Display for Expression {
             Expression::ArrayLiteral(items) => {
                 let args_str: Vec<String> = items.iter().map(|item| item.to_string()).collect();
                 write!(f, "[{}]", args_str.join(", "))
+            }
+            Expression::HashLiteral(items) => {
+                let args_str: Vec<String> = items
+                    .iter()
+                    .map(|(key, value)| format!("{}: {}", key, value))
+                    .collect();
+                write!(f, "{{{}}}", args_str.join(", "))
             }
         }
     }
@@ -213,6 +221,7 @@ mod tests {
 
         assert_eq!(expression.to_string(), output.to_string());
     }
+
     #[test]
     fn test_index_strignify() {
         let expression = Expression::Index(
@@ -221,6 +230,24 @@ mod tests {
         );
 
         let output = "(a[7])";
+
+        assert_eq!(expression.to_string(), output.to_string());
+    }
+
+    #[test]
+    fn test_hash_stringify() {
+        let expression = Expression::HashLiteral(vec![
+            (
+                Expression::StringLiteral("a".to_string()),
+                Expression::IntegerLiteral(7),
+            ),
+            (
+                Expression::StringLiteral("b".to_string()),
+                Expression::Boolean(true),
+            ),
+        ]);
+
+        let output = "{a: 7, b: true}";
 
         assert_eq!(expression.to_string(), output.to_string());
     }

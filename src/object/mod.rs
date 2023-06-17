@@ -1,6 +1,6 @@
 mod environment;
 
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 pub use environment::Environment;
 
@@ -12,6 +12,7 @@ pub enum Object {
     String(String),
     Boolean(bool),
     Array(Vec<Object>),
+    Hash(HashMap<HashKey, Object>),
     Return(Box<Object>),
     Function(Vec<Expression>, Box<Statement>, Environment),
     BuiltInFunction(fn(args: Vec<Object>) -> Object),
@@ -26,6 +27,7 @@ impl Object {
             Object::String(_) => "STRING",
             Object::Boolean(_) => "BOOLEAN",
             Object::Array(_) => "ARRAY",
+            Object::Hash(_) => "HASH",
             Object::Return(_) => "RETURN",
             Object::Function(_, _, _) => "FUNCTION",
             Object::BuiltInFunction(_) => "BUILTIN",
@@ -49,6 +51,13 @@ impl Display for Object {
                 let items = items.iter().map(|i| i.to_string()).collect::<Vec<String>>();
                 write!(f, "[{}]", items.join(", "))
             }
+            Object::Hash(items) => {
+                let items = items
+                    .iter()
+                    .map(|(k, v)| format!("{}: {}", k, v))
+                    .collect::<Vec<String>>();
+                write!(f, "{{{}}}", items.join(", "))
+            }
             Object::Return(ret) => write!(f, "{}", ret),
             Object::Function(params, body, _) => {
                 let params = params
@@ -62,4 +71,38 @@ impl Display for Object {
             Object::Null => write!(f, "null"),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum HashKey {
+    Integer(i64),
+    Boolean(bool),
+    String(String),
+}
+
+impl HashKey {
+    pub fn from_obj(obj: Object) -> Result<HashKey, Object> {
+        let key = match obj {
+            Object::Integer(integer) => HashKey::Integer(integer),
+            Object::Boolean(boolean) => HashKey::Boolean(boolean),
+            Object::String(string) => HashKey::String(string),
+            _ => return Err(unhashable_type_error(obj)),
+        };
+
+        Ok(key)
+    }
+}
+
+impl Display for HashKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HashKey::Integer(integer) => write!(f, "{}", integer),
+            HashKey::Boolean(boolean) => write!(f, "{}", boolean),
+            HashKey::String(string) => write!(f, "\"{}\"", string),
+        }
+    }
+}
+
+fn unhashable_type_error(obj: Object) -> Object {
+    Object::Error(format!("unusable as hash key: {}", obj.get_type()))
 }

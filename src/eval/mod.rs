@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::{
     ast::{Expression, Program, Statement},
     lexer::Token,
-    object::{Environment, Object},
+    object::{Environment, HashKey, Object},
 };
 
 mod builtins;
@@ -75,6 +77,7 @@ fn eval_expression(expression: Expression, environment: &mut Environment) -> Obj
         Expression::Boolean(false) => FALSE,
         Expression::Index(left, idx) => eval_index(*left, *idx, environment),
         Expression::ArrayLiteral(items) => eval_array_literal(items, environment),
+        Expression::HashLiteral(items) => eval_hash_literal(items, environment),
         Expression::FunctionLiteral(params, body) => {
             Object::Function(params, body, environment.clone())
         }
@@ -249,6 +252,32 @@ fn eval_array_literal(items: Vec<Expression>, environment: &mut Environment) -> 
         .collect::<Vec<Object>>();
 
     Object::Array(item_objs)
+}
+
+fn eval_hash_literal(
+    items: Vec<(Expression, Expression)>,
+    environment: &mut Environment,
+) -> Object {
+    let mut pairs = HashMap::new();
+
+    for (key, value) in items {
+        let key = eval_expression(key, environment);
+        if key.is_error() {
+            return key;
+        }
+
+        let value = eval_expression(value, environment);
+        if value.is_error() {
+            return value;
+        }
+
+        match HashKey::from_obj(key) {
+            Ok(hash_key) => pairs.insert(hash_key, value),
+            Err(err) => return err,
+        };
+    }
+
+    Object::Hash(pairs)
 }
 
 fn eval_index(left: Expression, idx: Expression, environment: &mut Environment) -> Object {
@@ -693,6 +722,48 @@ mod tests {
                 Object::Error(val) => assert_eq!(format!("ERROR: {}", val), expected.to_string()),
                 _ => panic!("Expected Array, got {:?}", evaluated),
             }
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_simple() {
+        let mut expected = HashMap::new();
+        expected.insert(HashKey::String("one".to_string()), Object::Integer(1));
+        expected.insert(HashKey::String("two".to_string()), Object::Integer(2));
+        expected.insert(HashKey::String("three".to_string()), Object::Integer(3));
+
+        let input = "{ \"one\": 1, \"two\": 2, \"three\": 3 }";
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::Hash(val) => assert_eq!(val, expected),
+            _ => panic!("Expected Hash, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_complex() {
+        let mut expected = HashMap::new();
+        expected.insert(HashKey::Boolean(true), Object::Boolean(true));
+        expected.insert(
+            HashKey::String("two".to_string()),
+            Object::String("two".to_string()),
+        );
+        expected.insert(
+            HashKey::Integer(3),
+            Object::Array(vec![
+                Object::Integer(1),
+                Object::Integer(2),
+                Object::Integer(3),
+            ]),
+        );
+
+        let input = "{ true: true, \"two\": \"two\", 3: [1, 2, 3] }";
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::Hash(val) => assert_eq!(val, expected),
+            _ => panic!("Expected Hash, got {:?}", evaluated),
         }
     }
 

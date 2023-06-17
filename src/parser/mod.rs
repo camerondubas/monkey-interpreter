@@ -327,13 +327,46 @@ impl Parser {
         }
 
         self.expect_peek(closing_token)?;
-
         Ok(list)
     }
 
     fn parse_array(&mut self) -> Result<Expression, ParserError> {
         let items = self.parse_expression_list(Token::RightBracket)?;
         Ok(Expression::ArrayLiteral(items))
+    }
+
+    fn parse_hash(&mut self) -> Result<Expression, ParserError> {
+        let mut pairs = vec![];
+
+        if self.peek_token == Token::RightBrace {
+            self.next_token();
+            return Ok(Expression::HashLiteral(pairs));
+        }
+
+        pairs.push(self.parse_hash_pairs()?);
+
+        while self.peek_token == Token::Comma {
+            self.next_token();
+
+            pairs.push(self.parse_hash_pairs()?);
+        }
+
+        self.expect_peek(Token::RightBrace)?;
+
+        Ok(Expression::HashLiteral(pairs))
+    }
+
+    fn parse_hash_pairs(&mut self) -> Result<(Expression, Expression), ParserError> {
+        self.next_token();
+
+        let key = self.parse_expression(Precedence::Lowest)?;
+
+        self.expect_peek(Token::Colon)?;
+        self.next_token();
+
+        let value = self.parse_expression(Precedence::Lowest)?;
+
+        Ok((key, value))
     }
 
     fn parse_index_expression(&mut self, left: Expression) -> Result<Expression, ParserError> {
@@ -360,6 +393,7 @@ impl Parser {
             Token::LeftParen => Some(Parser::parse_grouped_expression),
             Token::If => Some(Parser::parse_if_expression),
             Token::Function => Some(Parser::parse_fn_literal),
+            Token::LeftBrace => Some(Parser::parse_hash),
             Token::LeftBracket => Some(Parser::parse_array),
             Token::Illegal(_) => Some(Parser::parse_illegal_token),
             _ => None,
@@ -665,6 +699,47 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_hash_literal() {
+        let inputs = vec![
+            ("{}", Statement::Expression(Expression::HashLiteral(vec![]))),
+            (
+                "{ \"one\": 1, \"two\": 2, \"three\": 3 }",
+                Statement::Expression(Expression::HashLiteral(vec![
+                    (
+                        Expression::StringLiteral("one".to_string()),
+                        Expression::IntegerLiteral(1),
+                    ),
+                    (
+                        Expression::StringLiteral("two".to_string()),
+                        Expression::IntegerLiteral(2),
+                    ),
+                    (
+                        Expression::StringLiteral("three".to_string()),
+                        Expression::IntegerLiteral(3),
+                    ),
+                ])),
+            ),
+            (
+                "{ true: 1, 5: 2, 5 + 5: 3 }",
+                Statement::Expression(Expression::HashLiteral(vec![
+                    (Expression::Boolean(true), Expression::IntegerLiteral(1)),
+                    (Expression::IntegerLiteral(5), Expression::IntegerLiteral(2)),
+                    (
+                        Expression::InfixExpression(
+                            Box::new(Expression::IntegerLiteral(5)),
+                            Token::Plus,
+                            Box::new(Expression::IntegerLiteral(5)),
+                        ),
+                        Expression::IntegerLiteral(3),
+                    ),
+                ])),
+            ),
+        ];
+
+        expect_inputs_to_match(inputs);
+    }
+
+    #[test]
     fn test_prefix_expression() {
         let inputs = vec![
             (
@@ -869,11 +944,11 @@ mod tests {
                 )],
             ),
             (
-                "fn({) { return 11;}",
+                "fn(() { return 11;}",
                 vec![
-                    ParserError::ExpectedIdentifier(Token::LeftBrace),
+                    ParserError::ExpectedIdentifier(Token::LeftParen),
                     ParserError::MissingParsePrefixFunction(Token::RightParen),
-                    ParserError::MissingParsePrefixFunction(Token::LeftBrace),
+                    ParserError::MissingParsePrefixFunction(Token::Return),
                     ParserError::MissingParsePrefixFunction(Token::RightBrace),
                 ],
             ),

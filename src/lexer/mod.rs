@@ -54,6 +54,7 @@ impl Lexer {
             b'}' => Token::RightBrace,
             b'[' => Token::LeftBracket,
             b']' => Token::RightBracket,
+            b':' => Token::Colon,
             b';' => Token::Semicolon,
             b',' => Token::Comma,
             b'+' => Token::Plus,
@@ -180,6 +181,7 @@ mod test {
         \"foo bar\"
 
         [1,2];
+        {\"foo\": \"bar\"}
         ";
 
         let tokens = vec![
@@ -264,6 +266,11 @@ mod test {
             Token::Integer(String::from("2")),
             Token::RightBracket,
             Token::Semicolon,
+            Token::LeftBrace,
+            Token::String(String::from("foo")),
+            Token::Colon,
+            Token::String(String::from("bar")),
+            Token::RightBrace,
             Token::Eof,
         ];
 

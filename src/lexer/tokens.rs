@@ -33,6 +33,7 @@ pub enum Token {
 
     // Delimiters
     Comma,
+    Colon,
     Semicolon,
 
     // Braces
@@ -70,6 +71,7 @@ impl Display for Token {
             Token::Eq => "==",
             Token::NotEq => "!=",
             Token::Comma => ",",
+            Token::Colon => ":",
             Token::Semicolon => ";",
             Token::LeftParen => "(",
             Token::RightParen => ")",
