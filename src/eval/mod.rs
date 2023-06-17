@@ -284,17 +284,30 @@ fn eval_index(left: Expression, idx: Expression, environment: &mut Environment) 
     let left_obj = eval_expression(left, environment);
     let idx_obj = eval_expression(idx, environment);
 
-    let idx_int = match idx_obj {
-        Object::Integer(i) => i,
-        Object::Error(_) => return idx_obj,
-        _ => return type_mismatch_error(Object::Integer(0), idx_obj),
-    };
-
     match left_obj {
-        Object::Array(items) => match items.get(idx_int as usize) {
-            Some(val) => val.clone(),
-            None => out_of_range_error(items.len(), idx_int as usize),
-        },
+        Object::Array(items) => {
+            let idx_int = match idx_obj {
+                Object::Integer(i) => i,
+                Object::Error(_) => return idx_obj,
+                _ => return type_mismatch_error(Object::Integer(0), idx_obj),
+            };
+
+            match items.get(idx_int as usize) {
+                Some(val) => val.clone(),
+                None => out_of_range_error(items.len(), idx_int as usize),
+            }
+        }
+        Object::Hash(pairs) => {
+            let key = match HashKey::from_obj(idx_obj) {
+                Ok(key) => key,
+                Err(e) => return e,
+            };
+
+            match pairs.get(&key) {
+                Some(val) => val.clone(),
+                None => Object::Null,
+            }
+        }
         Object::Error(_) => left_obj,
         _ => type_mismatch_error(Object::Array(vec![]), left_obj),
     }
@@ -763,6 +776,28 @@ mod tests {
 
         match evaluated {
             Object::Hash(val) => assert_eq!(val, expected),
+            _ => panic!("Expected Hash, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_hash_index_inline() {
+        let input = "{ true: false, \"two\": \"two\", 3: [1, 2, 3] }[true]";
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            FALSE => (),
+            _ => panic!("Expected Hash, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_hash_index_variable() {
+        let input = "let hash = { true: false, \"two\": \"two\", 3: [1, 2, 3] }; hash[\"two\"]";
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::String(str) => assert_eq!(str, "two".to_string()),
             _ => panic!("Expected Hash, got {:?}", evaluated),
         }
     }
