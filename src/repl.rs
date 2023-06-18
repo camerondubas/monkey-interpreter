@@ -99,6 +99,10 @@ impl Repl {
                 println!("Environment cleared");
                 return Ok(());
             }
+            ":help" => {
+                self.print_help();
+                return Ok(());
+            }
             ":tracer" => {
                 let message;
 
@@ -224,22 +228,39 @@ impl Repl {
         println!();
         println!("Welcome to {}.", "Monkey 🍌".green().bold());
         println!();
-        println!("Commands:");
-        println!("  - {}: Toggle tracing", "`:trace`".yellow().italic());
-        println!(
-            "  - {}: Change output mode",
-            "`:mode <lexer|parser|ast|output>`".yellow().italic()
-        );
+        println!("Here are some common Commands:");
+        println!("  - {}: Full list of commands", "`:help`".yellow().italic());
         println!("  - {}: Print Environment", "`:env`".yellow().italic());
         println!("  - {}: Clear Environment", "`:clear`".yellow().italic());
         println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
-        println!();
-        self.print_mode();
         println!();
     }
 
     fn print_mode(&mut self) {
         println!("{}", format!("Output mode: \"{}\".", &self.mode).blue());
+    }
+
+    fn print_help(&mut self) {
+        println!("Full list of supported commands:");
+        println!("  - {}: Prints this message", "`:help`".yellow().italic());
+        println!(
+            "  - {}: Toggles tracing (work in progress)",
+            "`:trace`".yellow().italic()
+        );
+        println!(
+            "  - {}: Changes output mode for the REPL",
+            "`:mode <lexer|parser|ast|eval>`".yellow().italic()
+        );
+        println!(
+            "  - {}: Prints the current Environment",
+            "`:env`".yellow().italic()
+        );
+        println!(
+            "  - {}: Clears the current Environment",
+            "`:clear`".yellow().italic()
+        );
+        println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
+        println!();
     }
 }
 
