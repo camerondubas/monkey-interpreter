@@ -35,3 +35,23 @@ impl Environment {
         value
     }
 }
+
+impl Display for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Current Environment: ")?;
+        for (key, value) in &self.store {
+            writeln!(f, "  - {}: {}", key, value)?;
+        }
+
+        if let Some(outer) = &self.outer {
+            writeln!(f, "  - Outer:")?;
+            for (key, value) in &outer.borrow().store {
+                writeln!(f, "    - {}: {}", key, value)?;
+            }
+        } else {
+            writeln!(f, "  - Outer: None")?;
+        }
+
+        Ok(())
+    }
+}

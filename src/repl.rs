@@ -90,6 +90,10 @@ impl Repl {
                 println!("Bye! 👋");
                 return Err(());
             }
+            ":env" => {
+                println!("{}", self.environment.borrow());
+                return Ok(());
+            }
             ":tracer" => {
                 let message;
 
@@ -221,6 +225,7 @@ impl Repl {
             "  - {}: Change output mode",
             "`:mode <lexer|parser|ast|output>`".yellow().italic()
         );
+        println!("  - {}: Print Environment", "`:env`".yellow().italic());
         println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
         println!();
         self.print_mode();
