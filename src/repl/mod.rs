@@ -1,6 +1,7 @@
+use colored::Colorize;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     eval::eval,
@@ -8,31 +9,14 @@ use crate::{
     object::{Environment, Object},
     parser::Parser,
 };
-use colored::Colorize;
+
+mod commands;
+mod mode;
+use self::commands::ReplCommand;
+use self::mode::ReplMode;
 
 const PROMPT: &str = ">> ";
 const PARSING_FAILED_MESSAGE: &str = "Parsing failed. The following errors were found:";
-
-#[derive(Debug, PartialEq, Clone)]
-enum ReplMode {
-    Lexer,
-    Parser,
-    Ast,
-    Eval,
-}
-
-impl Display for ReplMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mode_str = match self {
-            ReplMode::Lexer => "lexer",
-            ReplMode::Parser => "parser",
-            ReplMode::Ast => "ast",
-            ReplMode::Eval => "eval",
-        };
-
-        write!(f, "{}", mode_str)
-    }
-}
 
 pub struct Repl {
     mode: ReplMode,
@@ -85,77 +69,31 @@ impl Repl {
     }
 
     fn handle_input(&mut self, line: String) -> Result<(), ()> {
-        match line.as_str() {
-            ":exit" => {
-                println!("Bye! 👋");
-                return Err(());
-            }
-            ":env" => {
-                println!("{}", self.environment.borrow());
-                return Ok(());
-            }
-            ":clear" => {
-                self.environment = Rc::new(RefCell::new(Environment::new()));
-                println!("Environment cleared");
-                return Ok(());
-            }
-            ":help" => {
-                self.print_help();
-                return Ok(());
-            }
-            ":tracer" => {
-                let message;
-
-                if self.tracer_enabled {
-                    self.tracer_enabled = false;
-                    message = "Disabled";
-                } else {
-                    self.tracer_enabled = true;
-                    message = "Enabled";
-                }
-
-                println!("Tracer {}", message);
-                return Ok(());
-            }
-            line if line.starts_with(":mode") => {
-                match self.set_mode(line) {
-                    Ok(_) => self.print_mode(),
-                    Err(e) => println!("{}", e.red()),
-                };
-                return Ok(());
-            }
-            line if line.is_empty() => {
-                return Ok(());
-            }
-            _ => (),
+        if line.is_empty() {
+            return Ok(());
         }
 
-        match self.mode {
-            ReplMode::Lexer => self.lex(line),
-            ReplMode::Parser => self.parse(line),
-            ReplMode::Ast => self.ast(line),
-            ReplMode::Eval => self.eval(line),
-        };
+        match line.trim().strip_prefix(':') {
+            Some(command) => {
+                let command = ReplCommand::from_str(command);
+                return command.run(self);
+            }
+            None => {
+                match self.mode {
+                    ReplMode::Lexer => self.lex(line),
+                    ReplMode::Parser => self.parse(line),
+                    ReplMode::Ast => self.ast(line),
+                    ReplMode::Eval => self.eval(line),
+                };
+            }
+        }
 
         Ok(())
     }
 
-    fn set_mode(&mut self, line: &str) -> Result<ReplMode, String> {
-        let mode_str = line
-            .split(' ')
-            .nth(1)
-            .ok_or("No mode provided".to_string())?;
-
-        let mode = match mode_str {
-            "lexer" => ReplMode::Lexer,
-            "parser" => ReplMode::Parser,
-            "ast" => ReplMode::Ast,
-            "eval" => ReplMode::Eval,
-            _ => return Err(format!("{:?} is not a valid mode", mode_str)),
-        };
-
+    fn set_mode(&mut self, mode_str: &str) -> Result<ReplMode, String> {
+        let mode = ReplMode::from_str(mode_str)?;
         self.mode = mode.clone();
-
         Ok(mode)
     }
 
