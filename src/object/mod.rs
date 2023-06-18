@@ -1,6 +1,6 @@
 mod environment;
 
-use std::{collections::HashMap, fmt::Display};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 pub use environment::Environment;
 
@@ -14,7 +14,7 @@ pub enum Object {
     Array(Vec<Object>),
     Hash(HashMap<HashKey, Object>),
     Return(Box<Object>),
-    Function(Vec<Expression>, Box<Statement>, Environment),
+    Function(Vec<Expression>, Box<Statement>, Rc<RefCell<Environment>>),
     BuiltInFunction(fn(args: Vec<Object>) -> Object),
     Error(String),
     Null,

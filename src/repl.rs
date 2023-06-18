@@ -1,6 +1,6 @@
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::{
     eval::eval,
@@ -37,7 +37,7 @@ impl Display for ReplMode {
 pub struct Repl {
     mode: ReplMode,
     tracer_enabled: bool,
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Repl {
@@ -45,7 +45,7 @@ impl Repl {
         Repl {
             mode: ReplMode::Eval,
             tracer_enabled: false,
-            environment: Environment::new(),
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
 
@@ -151,7 +151,7 @@ impl Repl {
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
-            let evaluated = eval(program, &mut self.environment);
+            let evaluated = eval(program, Rc::clone(&self.environment));
             let colorized_string = match evaluated {
                 Object::Integer(_) => evaluated.to_string().yellow(),
                 Object::Boolean(_) => evaluated.to_string().yellow(),
