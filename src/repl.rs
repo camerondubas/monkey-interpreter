@@ -94,6 +94,11 @@ impl Repl {
                 println!("{}", self.environment.borrow());
                 return Ok(());
             }
+            ":clear" => {
+                self.environment = Rc::new(RefCell::new(Environment::new()));
+                println!("Environment cleared");
+                return Ok(());
+            }
             ":tracer" => {
                 let message;
 
@@ -226,6 +231,7 @@ impl Repl {
             "`:mode <lexer|parser|ast|output>`".yellow().italic()
         );
         println!("  - {}: Print Environment", "`:env`".yellow().italic());
+        println!("  - {}: Clear Environment", "`:clear`".yellow().italic());
         println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
         println!();
         self.print_mode();
