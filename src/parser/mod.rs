@@ -280,6 +280,11 @@ impl Parser {
 
         while self.peek_token == Token::Comma {
             self.next_token();
+
+            if self.peek_token == Token::RightParen {
+                break;
+            }
+
             self.next_token();
             identifiers.push(self.parse_identifier()?);
         }
@@ -322,6 +327,11 @@ impl Parser {
 
         while self.peek_token == Token::Comma {
             self.next_token();
+
+            if self.peek_token == closing_token {
+                break;
+            }
+
             self.next_token();
             list.push(self.parse_expression(Precedence::Lowest)?);
         }
@@ -347,6 +357,10 @@ impl Parser {
 
         while self.peek_token == Token::Comma {
             self.next_token();
+
+            if self.peek_token == Token::RightBrace {
+                break;
+            }
 
             pairs.push(self.parse_hash_pairs()?);
         }
@@ -640,6 +654,16 @@ mod tests {
                     )])),
                 )),
             ),
+            (
+                "fn(x, y,) {}",
+                Statement::Expression(Expression::FunctionLiteral(
+                    vec![
+                        Expression::Identifier("x".to_string()),
+                        Expression::Identifier("y".to_string()),
+                    ],
+                    Box::new(Statement::Block(vec![])),
+                )),
+            ),
         ];
 
         expect_inputs_to_match(inputs);
@@ -647,40 +671,62 @@ mod tests {
 
     #[test]
     fn test_function_call() {
-        let inputs = vec![(
-            "add(a, 5 + 4);",
-            Statement::Expression(Expression::CallExpression(
-                Box::new(Expression::Identifier("add".to_string())),
-                vec![
-                    Expression::Identifier("a".to_string()),
-                    Expression::InfixExpression(
-                        Box::new(Expression::IntegerLiteral(5)),
-                        Token::Plus,
-                        Box::new(Expression::IntegerLiteral(4)),
-                    ),
-                ],
-            )),
-        )];
+        let inputs = vec![
+            (
+                "add(a, 5 + 4);",
+                Statement::Expression(Expression::CallExpression(
+                    Box::new(Expression::Identifier("add".to_string())),
+                    vec![
+                        Expression::Identifier("a".to_string()),
+                        Expression::InfixExpression(
+                            Box::new(Expression::IntegerLiteral(5)),
+                            Token::Plus,
+                            Box::new(Expression::IntegerLiteral(4)),
+                        ),
+                    ],
+                )),
+            ),
+            (
+                "add(a,b,);",
+                Statement::Expression(Expression::CallExpression(
+                    Box::new(Expression::Identifier("add".to_string())),
+                    vec![
+                        Expression::Identifier("a".to_string()),
+                        Expression::Identifier("b".to_string()),
+                    ],
+                )),
+            ),
+        ];
 
         expect_inputs_to_match(inputs);
     }
 
     #[test]
     fn test_array() {
-        let inputs = vec![(
-            "[a, 1, true, fn() { return false }]",
-            Statement::Expression(Expression::ArrayLiteral(vec![
-                Expression::Identifier("a".to_string()),
-                Expression::IntegerLiteral(1),
-                Expression::Boolean(true),
-                Expression::FunctionLiteral(
-                    vec![],
-                    Box::new(Statement::Block(vec![Statement::Return(
-                        Expression::Boolean(false),
-                    )])),
-                ),
-            ])),
-        )];
+        let inputs = vec![
+            (
+                "[a, 1, true, fn() { return false }]",
+                Statement::Expression(Expression::ArrayLiteral(vec![
+                    Expression::Identifier("a".to_string()),
+                    Expression::IntegerLiteral(1),
+                    Expression::Boolean(true),
+                    Expression::FunctionLiteral(
+                        vec![],
+                        Box::new(Statement::Block(vec![Statement::Return(
+                            Expression::Boolean(false),
+                        )])),
+                    ),
+                ])),
+            ),
+            (
+                "[1,2,3,]",
+                Statement::Expression(Expression::ArrayLiteral(vec![
+                    Expression::IntegerLiteral(1),
+                    Expression::IntegerLiteral(2),
+                    Expression::IntegerLiteral(3),
+                ])),
+            ),
+        ];
 
         expect_inputs_to_match(inputs);
     }
@@ -730,6 +776,23 @@ mod tests {
                             Token::Plus,
                             Box::new(Expression::IntegerLiteral(5)),
                         ),
+                        Expression::IntegerLiteral(3),
+                    ),
+                ])),
+            ),
+            (
+                "{ \"one\": 1, \"two\": 2, \"three\": 3, }",
+                Statement::Expression(Expression::HashLiteral(vec![
+                    (
+                        Expression::StringLiteral("one".to_string()),
+                        Expression::IntegerLiteral(1),
+                    ),
+                    (
+                        Expression::StringLiteral("two".to_string()),
+                        Expression::IntegerLiteral(2),
+                    ),
+                    (
+                        Expression::StringLiteral("three".to_string()),
                         Expression::IntegerLiteral(3),
                     ),
                 ])),
