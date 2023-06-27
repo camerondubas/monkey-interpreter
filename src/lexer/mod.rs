@@ -46,6 +46,7 @@ impl Lexer {
 
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
+        self.skip_comment();
 
         let token = match self.ch {
             b'(' => Token::LeftParen,
@@ -137,6 +138,21 @@ impl Lexer {
         }
     }
 
+    fn skip_comment(&mut self) {
+        if self.ch != b'/' || self.peek_char() != b'/' {
+            return;
+        }
+
+        self.read_char();
+        self.skip_whitespace();
+
+        while self.ch != b'\n' && self.ch != EOF {
+            self.read_char();
+        }
+
+        self.skip_whitespace();
+    }
+
     fn get_identifier_token(token: &str) -> Token {
         match token {
             "let" => Token::Let,
@@ -174,8 +190,9 @@ mod test {
             return false;
         }
 
+        // Support for single line comments
         10 == 10;
-        10 != 9;
+        10 != 9; // Support for end of line comments
 
         \"foobar\"
         \"foo bar\"
