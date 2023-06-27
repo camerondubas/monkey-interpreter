@@ -12,6 +12,7 @@ pub fn get_builtin_fn(ident: &str) -> Option<Object> {
         "range" => Object::BuiltInFunction(range),
         "puts" => Object::BuiltInFunction(puts),
         "keys" => Object::BuiltInFunction(keys),
+        "values" => Object::BuiltInFunction(values),
         _ => return None,
     };
 
@@ -119,12 +120,7 @@ fn keys(args: Vec<Object>) -> Object {
         [Object::Hash(hash)] => {
             let mut keys = vec![];
             hash.iter().for_each(|(key, _)| {
-                let obj = match key {
-                    HashKey::Integer(val) => Object::Integer(*val),
-                    HashKey::Boolean(val) => Object::Boolean(*val),
-                    HashKey::String(val) => Object::String(val.clone()),
-                };
-                keys.push(obj);
+                keys.push(Object::from_hash_key(key.clone()));
             });
             Object::Array(keys)
         }
@@ -135,9 +131,26 @@ fn keys(args: Vec<Object>) -> Object {
         _ => Object::Error("`keys` expects 1 argument".to_string()),
     }
 }
+
+fn values(args: Vec<Object>) -> Object {
+    match args.as_slice() {
+        [Object::Hash(hash)] => {
+            let mut values = vec![];
+            hash.iter().for_each(|(_, value)| {
+                values.push(value.clone());
+            });
+            Object::Array(values)
+        }
+        [non_hash] => Object::Error(format!(
+            "argument to `keys` must be a hash, got {:?}",
+            non_hash
+        )),
+        _ => Object::Error("`keys` expects 1 argument".to_string()),
+    }
+}
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, hash::Hash};
+    use std::collections::HashMap;
 
     use super::*;
     use crate::object::Object;
@@ -448,6 +461,59 @@ mod tests {
     fn test_keys_invalid() {
         let hash = Object::Integer(1);
         let evaluated = keys(vec![hash]);
+
+        if let Object::Error(_) = evaluated {
+        } else {
+            panic!("expected error");
+        }
+    }
+
+    #[test]
+    fn test_values() {
+        let mut hash_map = HashMap::new();
+        hash_map.insert(HashKey::Integer(1), Object::Integer(2));
+        hash_map.insert(HashKey::Boolean(true), Object::Boolean(false));
+
+        let hash = Object::Hash(hash_map);
+        let evaluated = values(vec![hash]);
+
+        fn count_values(values: Vec<Object>) -> HashMap<String, i32> {
+            let mut counts = HashMap::new();
+            for value in values {
+                *counts.entry(value.to_string()).or_insert(0) += 1;
+            }
+
+            counts
+        }
+
+        if let Object::Array(vec) = evaluated {
+            assert_eq!(
+                count_values(vec),
+                count_values(vec![Object::Integer(2), Object::Boolean(false)])
+            );
+        } else {
+            panic!("expected array");
+        }
+    }
+
+    #[test]
+    fn test_values_empty() {
+        let hash_map = HashMap::new();
+
+        let hash = Object::Hash(hash_map);
+        let evaluated = values(vec![hash]);
+
+        if let Object::Array(vec) = evaluated {
+            assert_eq!(vec, vec![]);
+        } else {
+            panic!("expected array");
+        }
+    }
+
+    #[test]
+    fn test_values_invalid() {
+        let hash = Object::Integer(1);
+        let evaluated = values(vec![hash]);
 
         if let Object::Error(_) = evaluated {
         } else {
