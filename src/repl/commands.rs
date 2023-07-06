@@ -10,7 +10,6 @@ pub enum ReplCommand {
     Unknown,
     DisplayEnv,
     ClearEnv,
-    ToggleTracer,
     DisplayMode,
     SetMode(String),
 }
@@ -22,7 +21,6 @@ impl ReplCommand {
             "exit" => ReplCommand::Quit,
             "env" => ReplCommand::DisplayEnv,
             "clear" => ReplCommand::ClearEnv,
-            "tracer" => ReplCommand::ToggleTracer,
             "mode" => ReplCommand::DisplayMode,
             line if line.starts_with("mode") => ReplCommand::SetMode(line[5..].to_string()),
 
@@ -37,19 +35,6 @@ impl ReplCommand {
             ReplCommand::ClearEnv => {
                 repl.environment = Rc::new(RefCell::new(Environment::new()));
                 println!("Environment cleared");
-            }
-            ReplCommand::ToggleTracer => {
-                let message;
-
-                if repl.tracer_enabled {
-                    repl.tracer_enabled = false;
-                    message = "Disabled";
-                } else {
-                    repl.tracer_enabled = true;
-                    message = "Enabled";
-                }
-
-                println!("Tracer {}", message);
             }
             ReplCommand::DisplayMode => repl.print_mode(),
             ReplCommand::SetMode(mode) => {

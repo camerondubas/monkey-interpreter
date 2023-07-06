@@ -4,10 +4,8 @@ use crate::{
 };
 
 mod error;
-mod tracer;
 
 use error::ParserError;
-use tracer::Tracer;
 
 #[derive(PartialEq, PartialOrd)]
 enum Precedence {
@@ -27,7 +25,6 @@ type InfixParseFn =
 
 pub struct Parser {
     lexer: Lexer,
-    tracer: Tracer,
 
     current_token: Token,
     peek_token: Token,
@@ -41,7 +38,6 @@ impl Parser {
         let peek_token = lexer.next_token();
         Parser {
             lexer,
-            tracer: Tracer::new(),
             current_token,
             peek_token,
             errors: Vec::new(),
@@ -51,14 +47,6 @@ impl Parser {
     pub fn from_source(source: &str) -> Self {
         let lexer = Lexer::new(source);
         Parser::new(lexer)
-    }
-
-    pub fn trace(&mut self, enable: bool) {
-        if enable {
-            self.tracer.enable();
-        } else {
-            self.tracer.disable();
-        }
     }
 
     pub fn parse_program(&mut self) -> Program {
@@ -118,25 +106,28 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
-        self.tracer.trace("parse_expression");
         let expression = self.parse_expression(Precedence::Lowest);
 
         if self.peek_token == Token::Semicolon {
             self.next_token();
         }
 
-        self.tracer.untrace("parse_expression");
         expression.map(Statement::Expression)
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
+        println!("----");
+        println!("parse_expression: {:?}", self.current_token);
         let prefix_expression = Parser::parse_prefix_fns(&self.current_token).ok_or(
             ParserError::MissingParsePrefixFunction(self.current_token.clone()),
         )?;
 
+        println!("prefix_expression: {:?}", prefix_expression);
         let mut left_expression = prefix_expression(self)?;
 
+        println!("peek_token: {:?}", self.peek_token);
         while self.peek_token != Token::Semicolon && precedence < self.peek_precedence() {
+            println!("peek_token in the while: {:?}", self.peek_token);
             left_expression = match Parser::parse_infix_fns(&self.peek_token) {
                 Some(infix) => {
                     self.next_token();

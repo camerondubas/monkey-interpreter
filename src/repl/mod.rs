@@ -20,7 +20,6 @@ const PARSING_FAILED_MESSAGE: &str = "Parsing failed. The following errors were 
 
 pub struct Repl {
     mode: ReplMode,
-    tracer_enabled: bool,
     environment: Rc<RefCell<Environment>>,
 }
 
@@ -28,7 +27,6 @@ impl Repl {
     pub fn new() -> Self {
         Repl {
             mode: ReplMode::Eval,
-            tracer_enabled: false,
             environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
@@ -122,7 +120,6 @@ impl Repl {
 
     fn parse(&mut self, line: String) {
         let mut parser = Parser::from_source(line.as_str());
-        parser.trace(self.tracer_enabled);
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
@@ -181,10 +178,6 @@ impl Repl {
     fn print_help(&mut self) {
         println!("Full list of supported commands:");
         println!("  - {}: Prints this message", "`:help`".yellow().italic());
-        println!(
-            "  - {}: Toggles tracing (work in progress)",
-            "`:trace`".yellow().italic()
-        );
         println!(
             "  - {}: Changes output mode for the REPL",
             "`:mode <lexer|parser|ast|eval>`".yellow().italic()
