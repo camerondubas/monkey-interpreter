@@ -4,20 +4,10 @@ use crate::{
 };
 
 mod error;
+mod precedence;
 
 use error::ParserError;
-
-#[derive(PartialEq, PartialOrd)]
-enum Precedence {
-    Lowest,
-    Equals,
-    LessGreater,
-    Sum,
-    Product,
-    Prefix,
-    Call,
-    Index,
-}
+use precedence::Precedence;
 
 type PrefixParseFn = fn(&mut Parser) -> Result<Expression, ParserError>;
 type InfixParseFn =
@@ -116,18 +106,14 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
-        println!("----");
-        println!("parse_expression: {:?}", self.current_token);
         let prefix_expression = Parser::parse_prefix_fns(&self.current_token).ok_or(
             ParserError::MissingParsePrefixFunction(self.current_token.clone()),
         )?;
 
-        println!("prefix_expression: {:?}", prefix_expression);
         let mut left_expression = prefix_expression(self)?;
 
-        println!("peek_token: {:?}", self.peek_token);
-        while self.peek_token != Token::Semicolon && precedence < self.peek_precedence() {
-            println!("peek_token in the while: {:?}", self.peek_token);
+        while self.peek_token != Token::Semicolon && precedence < Precedence::from(&self.peek_token)
+        {
             left_expression = match Parser::parse_infix_fns(&self.peek_token) {
                 Some(infix) => {
                     self.next_token();
@@ -185,7 +171,7 @@ impl Parser {
     ) -> Result<Expression, ParserError> {
         let left = left_side_expression;
         let operator = self.current_token.clone();
-        let precedence = self.current_precedence();
+        let precedence = Precedence::from(&self.current_token);
 
         self.next_token();
 
@@ -432,30 +418,6 @@ impl Parser {
             Ok(())
         } else {
             Err(ParserError::UnexpectedToken(token, self.peek_token.clone()))
-        }
-    }
-
-    fn peek_precedence(&self) -> Precedence {
-        self.get_operator_precedence(&self.peek_token)
-    }
-
-    fn current_precedence(&self) -> Precedence {
-        self.get_operator_precedence(&self.current_token)
-    }
-
-    fn get_operator_precedence(&self, operator: &Token) -> Precedence {
-        match operator {
-            Token::Plus => Precedence::Sum,
-            Token::Minus => Precedence::Sum,
-            Token::Asterisk => Precedence::Product,
-            Token::Slash => Precedence::Product,
-            Token::Lt => Precedence::LessGreater,
-            Token::Gt => Precedence::LessGreater,
-            Token::Eq => Precedence::Equals,
-            Token::NotEq => Precedence::Equals,
-            Token::LeftParen => Precedence::Call,
-            Token::LeftBracket => Precedence::Index,
-            _ => Precedence::Lowest,
         }
     }
 }
