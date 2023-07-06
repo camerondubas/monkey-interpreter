@@ -5,7 +5,7 @@ pub(crate) fn keys(args: Vec<Object>) -> Object {
         [Object::Hash(hash)] => {
             let mut keys = vec![];
             hash.iter().for_each(|(key, _)| {
-                keys.push(Object::from_hash_key(key.clone()));
+                keys.push(Object::from(key));
             });
             Object::Array(keys)
         }

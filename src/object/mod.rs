@@ -39,12 +39,14 @@ impl Object {
     pub fn is_error(&self) -> bool {
         matches!(self, Object::Error(_))
     }
+}
 
-    pub fn from_hash_key(key: HashKey) -> Object {
+impl From<&HashKey> for Object {
+    fn from(key: &HashKey) -> Self {
         match key {
-            HashKey::String(string) => Object::String(string),
-            HashKey::Integer(integer) => Object::Integer(integer),
-            HashKey::Boolean(boolean) => Object::Boolean(boolean),
+            HashKey::String(string) => Object::String(string.clone()),
+            HashKey::Integer(integer) => Object::Integer(*integer),
+            HashKey::Boolean(boolean) => Object::Boolean(*boolean),
         }
     }
 }
