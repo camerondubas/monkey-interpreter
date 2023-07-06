@@ -43,7 +43,7 @@ impl ReplCommand {
             }
             ReplCommand::Unknown => {
                 println!("Unknown Command");
-                return Err(());
+                return Ok(());
             }
             ReplCommand::Quit => {
                 println!("Bye! 👋");
