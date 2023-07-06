@@ -9,9 +9,10 @@ mod precedence;
 use error::ParserError;
 use precedence::Precedence;
 
-type PrefixParseFn = fn(&mut Parser) -> Result<Expression, ParserError>;
-type InfixParseFn =
-    fn(&mut Parser, left_side_expression: Expression) -> Result<Expression, ParserError>;
+type Result<T> = std::result::Result<T, ParserError>;
+
+type PrefixParseFn = fn(&mut Parser) -> Result<Expression>;
+type InfixParseFn = fn(&mut Parser, left_side_expression: Expression) -> Result<Expression>;
 
 pub struct Parser {
     lexer: Lexer,
@@ -54,7 +55,7 @@ impl Parser {
         program
     }
 
-    fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_statement(&mut self) -> Result<Statement> {
         match self.current_token {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
@@ -62,7 +63,7 @@ impl Parser {
         }
     }
 
-    fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_let_statement(&mut self) -> Result<Statement> {
         let name = match self.peek_token.clone() {
             Token::Identifier(ident) => {
                 self.next_token();
@@ -83,7 +84,7 @@ impl Parser {
         Ok(Statement::Let(name, value))
     }
 
-    fn parse_return_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_return_statement(&mut self) -> Result<Statement> {
         self.next_token();
 
         let value = self.parse_expression(Precedence::Lowest)?;
@@ -95,7 +96,7 @@ impl Parser {
         Ok(Statement::Return(value))
     }
 
-    fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_expression_statement(&mut self) -> Result<Statement> {
         let expression = self.parse_expression(Precedence::Lowest);
 
         if self.peek_token == Token::Semicolon {
@@ -105,7 +106,7 @@ impl Parser {
         expression.map(Statement::Expression)
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression> {
         let prefix_expression = Parser::parse_prefix_fns(&self.current_token).ok_or(
             ParserError::MissingParsePrefixFunction(self.current_token.clone()),
         )?;
@@ -126,14 +127,14 @@ impl Parser {
         Ok(left_expression)
     }
 
-    fn parse_identifier(&mut self) -> Result<Expression, ParserError> {
+    fn parse_identifier(&mut self) -> Result<Expression> {
         match &self.current_token {
             Token::Identifier(value) => Ok(Expression::Identifier(value.to_string())),
             _ => Err(ParserError::ExpectedIdentifier(self.current_token.clone())),
         }
     }
 
-    fn parse_integer(&mut self) -> Result<Expression, ParserError> {
+    fn parse_integer(&mut self) -> Result<Expression> {
         let result = match &self.current_token {
             Token::Integer(val) => val,
             _ => return Err(ParserError::ExpectedInteger(self.current_token.clone())),
@@ -145,14 +146,14 @@ impl Parser {
         )
     }
 
-    fn parse_string(&mut self) -> Result<Expression, ParserError> {
+    fn parse_string(&mut self) -> Result<Expression> {
         match self.current_token.clone() {
             Token::String(val) => Ok(Expression::StringLiteral(val)),
             err => Err(ParserError::ExpectedString(err)),
         }
     }
 
-    fn parse_prefix_expression(&mut self) -> Result<Expression, ParserError> {
+    fn parse_prefix_expression(&mut self) -> Result<Expression> {
         let operator = &self.current_token.clone();
 
         self.next_token();
@@ -165,10 +166,7 @@ impl Parser {
         ))
     }
 
-    fn parse_infix_expression(
-        &mut self,
-        left_side_expression: Expression,
-    ) -> Result<Expression, ParserError> {
+    fn parse_infix_expression(&mut self, left_side_expression: Expression) -> Result<Expression> {
         let left = left_side_expression;
         let operator = self.current_token.clone();
         let precedence = Precedence::from(&self.current_token);
@@ -184,7 +182,7 @@ impl Parser {
         ))
     }
 
-    fn parse_boolean(&mut self) -> Result<Expression, ParserError> {
+    fn parse_boolean(&mut self) -> Result<Expression> {
         match &self.current_token {
             Token::True => Ok(Expression::Boolean(true)),
             Token::False => Ok(Expression::Boolean(false)),
@@ -192,7 +190,7 @@ impl Parser {
         }
     }
 
-    fn parse_if_expression(&mut self) -> Result<Expression, ParserError> {
+    fn parse_if_expression(&mut self) -> Result<Expression> {
         self.expect_peek(Token::LeftParen)?;
         self.next_token();
 
@@ -218,7 +216,7 @@ impl Parser {
         ))
     }
 
-    fn parse_block_statement(&mut self) -> Result<Box<Statement>, ParserError> {
+    fn parse_block_statement(&mut self) -> Result<Box<Statement>> {
         let mut statements = vec![];
 
         self.next_token();
@@ -231,7 +229,7 @@ impl Parser {
         Ok(Box::new(Statement::Block(statements)))
     }
 
-    fn parse_fn_literal(&mut self) -> Result<Expression, ParserError> {
+    fn parse_fn_literal(&mut self) -> Result<Expression> {
         self.expect_peek(Token::LeftParen)?;
 
         let params = self.parse_fn_parameters()?;
@@ -243,7 +241,7 @@ impl Parser {
         Ok(Expression::FunctionLiteral(params, body))
     }
 
-    fn parse_fn_parameters(&mut self) -> Result<Vec<Expression>, ParserError> {
+    fn parse_fn_parameters(&mut self) -> Result<Vec<Expression>> {
         let mut identifiers = vec![];
 
         if self.peek_token == Token::RightParen {
@@ -271,13 +269,13 @@ impl Parser {
         Ok(identifiers)
     }
 
-    fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParserError> {
+    fn parse_call_expression(&mut self, function: Expression) -> Result<Expression> {
         let arguments = self.parse_expression_list(Token::RightParen)?;
 
         Ok(Expression::CallExpression(Box::new(function), arguments))
     }
 
-    fn parse_grouped_expression(&mut self) -> Result<Expression, ParserError> {
+    fn parse_grouped_expression(&mut self) -> Result<Expression> {
         self.next_token();
 
         let expression = self.parse_expression(Precedence::Lowest);
@@ -287,10 +285,7 @@ impl Parser {
         expression
     }
 
-    fn parse_expression_list(
-        &mut self,
-        closing_token: Token,
-    ) -> Result<Vec<Expression>, ParserError> {
+    fn parse_expression_list(&mut self, closing_token: Token) -> Result<Vec<Expression>> {
         let mut list = vec![];
 
         if self.peek_token == closing_token {
@@ -317,12 +312,12 @@ impl Parser {
         Ok(list)
     }
 
-    fn parse_array(&mut self) -> Result<Expression, ParserError> {
+    fn parse_array(&mut self) -> Result<Expression> {
         let items = self.parse_expression_list(Token::RightBracket)?;
         Ok(Expression::ArrayLiteral(items))
     }
 
-    fn parse_hash(&mut self) -> Result<Expression, ParserError> {
+    fn parse_hash(&mut self) -> Result<Expression> {
         let mut pairs = vec![];
 
         if self.peek_token == Token::RightBrace {
@@ -347,7 +342,7 @@ impl Parser {
         Ok(Expression::HashLiteral(pairs))
     }
 
-    fn parse_hash_pairs(&mut self) -> Result<(Expression, Expression), ParserError> {
+    fn parse_hash_pairs(&mut self) -> Result<(Expression, Expression)> {
         self.next_token();
 
         let key = self.parse_expression(Precedence::Lowest)?;
@@ -360,7 +355,7 @@ impl Parser {
         Ok((key, value))
     }
 
-    fn parse_index_expression(&mut self, left: Expression) -> Result<Expression, ParserError> {
+    fn parse_index_expression(&mut self, left: Expression) -> Result<Expression> {
         self.next_token();
 
         let idx = self.parse_expression(Precedence::Lowest)?;
@@ -370,7 +365,7 @@ impl Parser {
         Ok(Expression::Index(Box::new(left), Box::new(idx)))
     }
 
-    fn parse_illegal_token(&mut self) -> Result<Expression, ParserError> {
+    fn parse_illegal_token(&mut self) -> Result<Expression> {
         Err(ParserError::UnknownError(self.current_token.clone()))
     }
 
@@ -412,7 +407,7 @@ impl Parser {
         self.peek_token = self.lexer.next_token();
     }
 
-    fn expect_peek(&mut self, token: Token) -> Result<(), ParserError> {
+    fn expect_peek(&mut self, token: Token) -> Result<()> {
         if self.peek_token.eq(&token) {
             self.next_token();
             Ok(())
