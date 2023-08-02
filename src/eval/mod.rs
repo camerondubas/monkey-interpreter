@@ -59,10 +59,8 @@ fn eval_block_statement(block: Vec<Statement>, environment: Rc<RefCell<Environme
     for statement in block {
         result = eval_statement(statement, Rc::clone(&environment));
 
-        match result {
-            Object::Return(_) => return result,
-            Object::Error(_) => return result,
-            _ => (),
+        if matches!(result, Object::Return(_) | Object::Error(_)) {
+            return result;
         }
     }
 
