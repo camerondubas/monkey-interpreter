@@ -1,6 +1,5 @@
 # TODO
 - feat: support assigning new properties to hash
-- feat: nested strings
 - error: line numbers
 - error: stack trace
 - internal: create error enum (passed to Object::Error)
@@ -11,6 +10,7 @@
 - docs: readme
 - feat: wasm
 - feat: web interface
++ feat: nested strings
 + builtin: spit into individual files
 + builtin: object iteration/keys
 + repl: clear

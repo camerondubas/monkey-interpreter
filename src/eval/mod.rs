@@ -439,6 +439,7 @@ mod tests {
                 "\"(5 + 10 * 2 + 15 / 3) * 2 + -10\"",
                 "(5 + 10 * 2 + 15 / 3) * 2 + -10",
             ),
+            (r#""some \"nested\" string""#, "some \"nested\" string"),
         ];
 
         for (input, expected) in inputs {

@@ -520,6 +520,12 @@ mod tests {
                 Statement::Expression(Expression::StringLiteral("with1234numbers".to_string())),
             ),
             (
+                r#""with a \"nested\" string""#,
+                Statement::Expression(Expression::StringLiteral(
+                    "with a \"nested\" string".to_string(),
+                )),
+            ),
+            (
                 "\"with->=_'_|+!#@symbols;\"",
                 Statement::Expression(Expression::StringLiteral(
                     "with->=_'_|+!#@symbols;".to_string(),

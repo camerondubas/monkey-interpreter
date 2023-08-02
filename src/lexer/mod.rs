@@ -119,21 +119,38 @@ impl Lexer {
 
     fn read_string(&mut self) -> Result<String, String> {
         self.read_char();
-        let position = self.position;
+        //TODO: Look into keeping a list of "skipped" positions,
+        // let position = self.position;
+        let mut chars: Vec<u8> = vec![];
         while self.ch != b'"' {
             if self.ch == EOF {
                 return Err("Unterminated String".to_string());
             }
 
+            self.skip_escape_char();
+
+            chars.push(self.ch);
             self.read_char();
         }
 
-        String::from_utf8(self.input[position..self.position].to_vec())
-            .map_err(|err| err.to_string())
+        // String::from_utf8(
+        //     self.input[position..self.position]
+        //         .iter()
+        //         .copied()
+        //         .filter(|i| *i != b'\\')
+        //         .collect(),
+        // )
+        String::from_utf8(chars).map_err(|err| err.to_string())
     }
 
     fn skip_whitespace(&mut self) {
         while self.ch == b' ' || self.ch == b'\t' || self.ch == b'\n' || self.ch == b'\r' {
+            self.read_char();
+        }
+    }
+
+    fn skip_escape_char(&mut self) {
+        if self.ch == b'\\' {
             self.read_char();
         }
     }
@@ -309,6 +326,7 @@ mod test {
             Token::Identifier(String::from("five")),
             Token::Assign,
             Token::Illegal("Unterminated String".to_string()),
+            Token::Eof,
         ];
 
         let mut lexer = Lexer::new(input);
@@ -317,6 +335,25 @@ mod test {
             println!("token: {:?}", _token);
 
             assert_eq!(_token, token);
+        }
+    }
+
+    #[test]
+    fn test_nested_string() {
+        let input = r#"let quote = "this is a \"nested\" quote.""#;
+
+        let tokens = vec![
+            Token::Let,
+            Token::Identifier(String::from("quote")),
+            Token::Assign,
+            Token::String(String::from("this is a \"nested\" quote.")),
+            Token::Eof,
+        ];
+
+        let mut lexer = Lexer::new(input);
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
         }
     }
 }
