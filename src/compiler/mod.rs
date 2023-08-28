@@ -3,6 +3,7 @@ mod error;
 use crate::{
     ast::{Expression, Program, Statement},
     code::{make, Instructions, Opcode},
+    lexer::Token,
     object::Object,
 };
 
@@ -45,9 +46,14 @@ impl Compiler {
 
     fn compile_expression(&mut self, expression: Expression) -> CompilerResult {
         match expression {
-            Expression::InfixExpression(left, _, right) => {
+            Expression::InfixExpression(left, operator, right) => {
                 self.compile_expression(*left)?;
                 self.compile_expression(*right)?;
+
+                match operator {
+                    Token::Plus => self.emit(Opcode::Add, &[]),
+                    _ => return Err(CompilerError::UnknownOperator(operator)),
+                };
             }
             Expression::IntegerLiteral(value) => {
                 let integer = Object::Integer(value);
@@ -105,7 +111,11 @@ mod tests {
         let test = CompilerTestCase {
             input: "1 + 2".to_string(),
             expected_constants: vec![Object::Integer(1), Object::Integer(2)],
-            expected_instructions: vec![make(Opcode::Constant, &[0]), make(Opcode::Constant, &[1])],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::Add, &[]),
+            ],
         };
 
         let program = Parser::from_source(&test.input).parse_program();

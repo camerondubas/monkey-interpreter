@@ -1,4 +1,7 @@
-use crate::ast::{Expression, Statement};
+use crate::{
+    ast::{Expression, Statement},
+    lexer::Token,
+};
 use std::{fmt::Display, result::Result};
 
 pub type CompilerResult = Result<(), CompilerError>;
@@ -6,6 +9,7 @@ pub type CompilerResult = Result<(), CompilerError>;
 pub enum CompilerError {
     UnhandledStatement(Statement),
     UnhandledExpression(Expression),
+    UnknownOperator(Token),
 }
 
 impl Display for CompilerError {
@@ -16,6 +20,9 @@ impl Display for CompilerError {
             }
             CompilerError::UnhandledExpression(expression) => {
                 write!(f, "Unhandled expression: {:?}", expression)
+            }
+            CompilerError::UnknownOperator(operator) => {
+                write!(f, "Unknown operator: {:?} ", operator)
             }
         }
     }

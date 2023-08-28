@@ -1,4 +1,4 @@
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Instructions(pub Vec<u8>);
 
 impl Instructions {
@@ -45,6 +45,12 @@ impl Instructions {
     }
 }
 
+impl PartialEq<Vec<u8>> for Instructions {
+    fn eq(&self, other: &Vec<u8>) -> bool {
+        &self.0 == other
+    }
+}
+
 impl From<Vec<Instructions>> for Instructions {
     fn from(instructions: Vec<Instructions>) -> Self {
         instructions
@@ -59,6 +65,7 @@ impl From<Vec<Instructions>> for Instructions {
 #[derive(Clone, Copy)]
 pub enum Opcode {
     Constant = 1,
+    Add = 2,
 }
 
 pub struct Definition {
@@ -99,6 +106,10 @@ impl Opcode {
                 name: "Constant".to_string(),
                 operand_widths: vec![2],
             },
+            Opcode::Add => Definition {
+                name: "Add".to_string(),
+                operand_widths: vec![],
+            },
         }
     }
 }
@@ -107,6 +118,7 @@ impl From<u8> for Opcode {
     fn from(opcode: u8) -> Self {
         match opcode {
             1 => Opcode::Constant,
+            2 => Opcode::Add,
             _ => panic!("Opcode not found"),
         }
     }
@@ -157,30 +169,60 @@ fn format_instruction(definition: &Definition, operands: &[u16]) -> String {
 mod tests {
     use super::*;
 
+    struct TestMake {
+        opcode: Opcode,
+        operands: Vec<u16>,
+        expected: Vec<u8>,
+    }
     #[test]
-    fn test_constant() {
-        let instructions = vec![
-            (make(Opcode::Constant, &[0]), vec![1, 0, 0]),
-            (make(Opcode::Constant, &[1]), vec![1, 0, 1]),
-            (make(Opcode::Constant, &[65534]), vec![1, 255, 254]),
+    fn test_make() {
+        let tests: Vec<TestMake> = vec![
+            TestMake {
+                opcode: Opcode::Constant,
+                operands: vec![0],
+                expected: vec![Opcode::Constant as u8, 0, 0],
+            },
+            TestMake {
+                opcode: Opcode::Constant,
+                operands: vec![1],
+                expected: vec![Opcode::Constant as u8, 0, 1],
+            },
+            TestMake {
+                opcode: Opcode::Constant,
+                operands: vec![65534],
+                expected: vec![Opcode::Constant as u8, 255, 254],
+            },
+            TestMake {
+                opcode: Opcode::Constant,
+                operands: vec![65535],
+                expected: vec![Opcode::Constant as u8, 255, 255],
+            },
+            TestMake {
+                opcode: Opcode::Add,
+                operands: vec![],
+                expected: vec![Opcode::Add as u8],
+            },
         ];
 
-        for (instruction, expected) in instructions {
-            assert_eq!(instruction.0, expected);
+        for test in tests {
+            let instruction = make(test.opcode, &test.operands);
+            assert_eq!(instruction, test.expected);
         }
     }
 
     #[test]
     fn test_instructions_string() {
         let instructions = vec![
+            make(Opcode::Add, &[]),
             make(Opcode::Constant, &[1]),
             make(Opcode::Constant, &[2]),
             make(Opcode::Constant, &[65535]),
         ];
 
-        let expected = "0000 Constant 1
-0003 Constant 2
-0006 Constant 65535
+        let expected = "0000 Add
+0001 Constant 1
+0004 Constant 2
+0007 Constant 65535
 ";
 
         assert_eq!(Instructions::from(instructions).print(), expected);

@@ -5,15 +5,21 @@ use crate::{
 };
 use std::{fmt::Display, result::Result};
 
-pub type VirtualMachineResult = Result<(), VirtualMachineError>;
+pub type VirtualMachineResult<T = ()> = Result<T, VirtualMachineError>;
 pub enum VirtualMachineError {
     StackOverflow,
+    StackUnderflow,
+    UnsupportedAddition(Object, Object),
 }
 
 impl Display for VirtualMachineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             VirtualMachineError::StackOverflow => write!(f, "Stack overflow"),
+            VirtualMachineError::StackUnderflow => write!(f, "Stack underflow"),
+            VirtualMachineError::UnsupportedAddition(left, right) => {
+                write!(f, "Unsupported addition: {:?} + {:?}", left, right)
+            }
         }
     }
 }
@@ -55,6 +61,17 @@ impl VirtualMachine {
                     instruction_pointer += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
+                Opcode::Add => {
+                    let right = self.pop()?;
+                    let left = self.pop()?;
+
+                    match (&left, &right) {
+                        (Object::Integer(left), Object::Integer(right)) => {
+                            self.push(Object::Integer(left + right))?;
+                        }
+                        _ => return Err(VirtualMachineError::UnsupportedAddition(left, right)),
+                    };
+                }
             }
         }
         Ok(())
@@ -69,6 +86,17 @@ impl VirtualMachine {
         self.stack_pointer += 1;
 
         Ok(())
+    }
+
+    fn pop(&mut self) -> VirtualMachineResult<Object> {
+        if self.stack_pointer == 0 {
+            return Err(VirtualMachineError::StackUnderflow);
+        }
+
+        let object = self.stack[self.stack_pointer - 1].clone();
+        self.stack_pointer -= 1;
+
+        Ok(object)
     }
 
     pub fn stack_top(&self) -> Object {
@@ -106,7 +134,11 @@ mod tests {
             },
             VMTestCase {
                 input: "1 + 2".to_string(),
-                expected: 2,
+                expected: 3,
+            },
+            VMTestCase {
+                input: "1 + 2 + 6".to_string(),
+                expected: 9,
             },
         ];
 
