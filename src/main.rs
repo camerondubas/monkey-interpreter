@@ -1,9 +1,12 @@
 mod ast;
+mod code;
+mod compiler;
 mod eval;
 mod lexer;
 mod object;
 mod parser;
 mod repl;
+mod vm;
 
 use std::{cell::RefCell, env, fs, rc::Rc};
 

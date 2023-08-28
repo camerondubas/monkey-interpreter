@@ -6,6 +6,7 @@ pub enum ReplMode {
     Parser,
     Ast,
     Eval,
+    Compiler,
 }
 
 impl Display for ReplMode {
@@ -15,6 +16,7 @@ impl Display for ReplMode {
             ReplMode::Parser => "parser",
             ReplMode::Ast => "ast",
             ReplMode::Eval => "eval",
+            ReplMode::Compiler => "compiler",
         };
 
         write!(f, "{}", mode_str)
@@ -28,6 +30,7 @@ impl ReplMode {
             "parser" => ReplMode::Parser,
             "ast" => ReplMode::Ast,
             "eval" => ReplMode::Eval,
+            "compiler" => ReplMode::Compiler,
             _ => return Err(format!("{:?} is not a valid mode", mode_str)),
         };
 

@@ -1,13 +1,15 @@
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
+    compiler::Compiler,
     eval::eval,
     lexer::{Lexer, Token},
     object::{Environment, Object},
     parser::Parser,
+    vm::VirtualMachine,
 };
 
 mod commands;
@@ -82,6 +84,7 @@ impl Repl {
                     ReplMode::Parser => self.parse(line),
                     ReplMode::Ast => self.ast(line),
                     ReplMode::Eval => self.eval(line),
+                    ReplMode::Compiler => self.compile(line),
                 };
             }
         }
@@ -95,21 +98,60 @@ impl Repl {
         Ok(mode)
     }
 
+    fn compile(&mut self, line: String) {
+        let mut parser = Parser::from_source(line.as_str());
+        let program = parser.parse_program();
+
+        if parser.errors.is_empty() {
+            let mut compiler = Compiler::new();
+
+            match compiler.compile(program) {
+                Ok(_) => {
+                    let mut vm = VirtualMachine::new(compiler.bytecode());
+                    match vm.run() {
+                        Ok(_) => {
+                            let evaluated = vm.stack_top();
+                            let output = self.format_output(evaluated);
+                            self.print(output)
+                        }
+                        Err(e) => println!("{}", e),
+                    }
+                }
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
+        } else {
+            println!("{}", PARSING_FAILED_MESSAGE.red());
+            for error in parser.errors {
+                println!("  - {}", error);
+            }
+        }
+    }
+
+    fn format_output(&mut self, output: Object) -> ColoredString {
+        match output {
+            Object::Integer(_) => output.to_string().yellow(),
+            Object::Boolean(_) => output.to_string().yellow(),
+            Object::String(_) => output.to_string().green(),
+            Object::Function(_, _, _) => output.to_string().bright_blue(),
+            Object::Error(_) => output.to_string().red(),
+            _ => output.to_string().white(),
+        }
+    }
+
+    fn print(&self, str: ColoredString) {
+        println!("{}", str.bold());
+    }
+
     fn eval(&mut self, line: String) {
         let mut parser = Parser::from_source(line.as_str());
         let program = parser.parse_program();
 
         if parser.errors.is_empty() {
             let evaluated = eval(program, Rc::clone(&self.environment));
-            let colorized_string = match evaluated {
-                Object::Integer(_) => evaluated.to_string().yellow(),
-                Object::Boolean(_) => evaluated.to_string().yellow(),
-                Object::String(_) => evaluated.to_string().green(),
-                Object::Function(_, _, _) => evaluated.to_string().bright_blue(),
-                Object::Error(_) => evaluated.to_string().red(),
-                _ => evaluated.to_string().white(),
-            };
-            println!("{}", colorized_string.bold());
+            let formatted = self.format_output(evaluated);
+            self.print(formatted);
         } else {
             println!("{}", PARSING_FAILED_MESSAGE.red());
             for error in parser.errors {

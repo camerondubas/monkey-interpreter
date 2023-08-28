@@ -10,6 +10,7 @@
 - docs: readme
 - feat: wasm
 - feat: web interface
+- refactor(repl): move parsing to single method
 + feat: nested strings
 + builtin: spit into individual files
 + builtin: object iteration/keys
