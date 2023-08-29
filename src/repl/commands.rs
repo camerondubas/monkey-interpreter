@@ -1,9 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use crate::object::Environment;
 
 use super::{
     error::{ReplError, Result},
+    mode::ReplMode,
     Repl,
 };
 
@@ -15,22 +16,30 @@ pub enum ReplCommand {
     ClearEnv,
     DisplayMode,
     SetMode(String),
+    Execute(String),
+}
+
+impl FromStr for ReplCommand {
+    type Err = ReplError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let command = match s {
+            ":help" => ReplCommand::Help,
+            ":exit" => ReplCommand::Quit,
+            ":env" => ReplCommand::DisplayEnv,
+            ":clear" => ReplCommand::ClearEnv,
+            ":mode" => ReplCommand::DisplayMode,
+            ":quit" => ReplCommand::Quit,
+            line if line.starts_with(":mode") => ReplCommand::SetMode(line[6..].to_string()),
+            line if line.starts_with(':') => ReplCommand::Unknown,
+            cmd => ReplCommand::Execute(cmd.to_string()),
+        };
+
+        Ok(command)
+    }
 }
 
 impl ReplCommand {
-    pub fn from_str(command: &str) -> ReplCommand {
-        match command {
-            "help" => ReplCommand::Help,
-            "exit" => ReplCommand::Quit,
-            "env" => ReplCommand::DisplayEnv,
-            "clear" => ReplCommand::ClearEnv,
-            "mode" => ReplCommand::DisplayMode,
-            line if line.starts_with("mode") => ReplCommand::SetMode(line[5..].to_string()),
-
-            _ => ReplCommand::Unknown,
-        }
-    }
-
     pub fn run(&self, repl: &mut Repl) -> Result<()> {
         match self {
             ReplCommand::Help => repl.print_help(),
@@ -45,11 +54,20 @@ impl ReplCommand {
                 repl.print_mode();
             }
             ReplCommand::Unknown => {
-                println!("Unknown Command");
-                return Ok(());
+                return Err(ReplError::UnknownCommand);
             }
             ReplCommand::Quit => {
-                return Err(vec![ReplError::Quit]);
+                return Err(ReplError::Quit);
+            }
+            ReplCommand::Execute(line) => {
+                let line = line.clone();
+                return match repl.mode {
+                    ReplMode::Lexer => repl.lex(line),
+                    ReplMode::Parser => repl.parse(line),
+                    ReplMode::Ast => repl.ast(line),
+                    ReplMode::Eval => repl.eval(line),
+                    ReplMode::Compiler => repl.compile(line),
+                };
             }
         };
 

@@ -26,7 +26,7 @@ impl Display for ReplMode {
 }
 
 impl FromStr for ReplMode {
-    type Err = Vec<ReplError>;
+    type Err = ReplError;
 
     fn from_str(mode_str: &str) -> Result<Self, Self::Err> {
         let mode = match mode_str {
@@ -35,25 +35,9 @@ impl FromStr for ReplMode {
             "ast" => ReplMode::Ast,
             "eval" => ReplMode::Eval,
             "compiler" => ReplMode::Compiler,
-            _ => return Err(vec![ReplError::UnknownMode(mode_str.to_string())]),
+            _ => return Err(ReplError::UnknownMode(mode_str.to_string())),
         };
 
         Ok(mode)
-    }
-}
-
-trait ReplRun {
-    fn run(&self) -> Result<(), String>;
-}
-
-impl ReplRun for ReplMode {
-    fn run(&self) -> Result<(), String> {
-        match self {
-            ReplMode::Lexer => todo!(),
-            ReplMode::Parser => todo!(),
-            ReplMode::Ast => todo!(),
-            ReplMode::Eval => todo!(),
-            ReplMode::Compiler => todo!(),
-        }
     }
 }

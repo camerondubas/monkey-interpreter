@@ -4,12 +4,13 @@ use colored::Colorize;
 
 use crate::{compiler::error::CompilerError, parser::error::ParserError, vm::VirtualMachineError};
 
-pub type Result<T = ()> = std::result::Result<T, Vec<ReplError>>;
+pub type Result<T = ()> = std::result::Result<T, ReplError>;
 pub enum ReplError {
-    Parser(ParserError),
+    Parser(Vec<ParserError>),
     Compiler(CompilerError),
     VM(VirtualMachineError),
     UnknownMode(String),
+    UnknownCommand,
     Quit,
 }
 
@@ -18,7 +19,11 @@ impl Display for ReplError {
         match self {
             ReplError::Parser(parser_error) => {
                 writeln!(f, "Parser error:")?;
-                writeln!(f, "  - {}", parser_error)
+                for parser_error in parser_error {
+                    writeln!(f, "  - {}", parser_error)?;
+                }
+
+                Ok(())
             }
             ReplError::Compiler(compiler_error) => {
                 writeln!(f, "Compiler error:")?;
@@ -31,13 +36,16 @@ impl Display for ReplError {
             ReplError::UnknownMode(mode) => {
                 writeln!(f, "Unknown mode \"{}\".", mode.red().bold())
             }
+            ReplError::UnknownCommand => {
+                writeln!(f, "Unknown command. Type \":help\" for help.")
+            }
             ReplError::Quit => writeln!(f, "Bye! 👋"),
         }
     }
 }
 
-impl From<ParserError> for ReplError {
-    fn from(error: ParserError) -> Self {
+impl From<Vec<ParserError>> for ReplError {
+    fn from(error: Vec<ParserError>) -> Self {
         ReplError::Parser(error)
     }
 }

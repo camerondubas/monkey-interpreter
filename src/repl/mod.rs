@@ -1,4 +1,4 @@
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::{cell::RefCell, rc::Rc, str::FromStr};
@@ -45,10 +45,13 @@ impl Repl {
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(line.as_str())?;
-                    let result = self.handle_input(line);
 
-                    if result.is_err() {
-                        break;
+                    if let Err(error) = self.handle_input(line) {
+                        let should_quit: bool = matches!(error, ReplError::Quit);
+                        self.print_error(error);
+                        if should_quit {
+                            break;
+                        }
                     }
                 }
                 Err(ReadlineError::Interrupted) => {
@@ -69,39 +72,13 @@ impl Repl {
         Ok(())
     }
 
-    fn handle_input(&mut self, line: String) -> std::result::Result<(), ()> {
+    fn handle_input(&mut self, line: String) -> std::result::Result<(), ReplError> {
         if line.is_empty() {
             return Ok(());
         }
 
-        match line.trim().strip_prefix(':') {
-            Some(command) => {
-                let command = ReplCommand::from_str(command);
-                let result = command.run(self);
-                if let Err(errors) = result {
-                    let should_quit: bool = errors.iter().any(|e| matches!(e, ReplError::Quit));
-                    self.print_errors(errors);
-                    if should_quit {
-                        return Err(());
-                    }
-                }
-            }
-            None => {
-                let result = match self.mode {
-                    ReplMode::Lexer => self.lex(line),
-                    ReplMode::Parser => self.parse(line),
-                    ReplMode::Ast => self.ast(line),
-                    ReplMode::Eval => self.eval(line),
-                    ReplMode::Compiler => self.compile(line),
-                };
-
-                if let Err(err) = result {
-                    self.print_errors(err);
-                }
-            }
-        }
-
-        Ok(())
+        let command = ReplCommand::from_str(line.as_str())?;
+        command.run(self)
     }
 
     fn set_mode(&mut self, mode_str: &str) -> Result<ReplMode> {
@@ -114,29 +91,19 @@ impl Repl {
         let program = self.internal_parse(line)?;
         let mut compiler = Compiler::new();
 
-        match compiler.compile(program) {
-            Ok(_) => {
-                let mut vm = VirtualMachine::new(compiler.bytecode());
+        compiler.compile(program)?;
+        let mut vm = VirtualMachine::new(compiler.bytecode());
 
-                match vm.run() {
-                    Ok(_) => {
-                        let evaluated = vm.stack_top();
-                        let output = self.format_output(evaluated);
-                        self.print(output);
-                        Ok(())
-                    }
-                    Err(e) => Err(vec![ReplError::from(e)]),
-                }
-            }
-            Err(e) => Err(vec![ReplError::from(e)]),
-        }
+        vm.run()?;
+
+        self.print(vm.stack_top());
+        Ok(())
     }
 
     fn eval(&mut self, line: String) -> Result {
         let program = self.internal_parse(line)?;
         let evaluated = eval(program, Rc::clone(&self.environment));
-        let formatted = self.format_output(evaluated);
-        self.print(formatted);
+        self.print(evaluated);
         Ok(())
     }
 
@@ -161,10 +128,9 @@ impl Repl {
             let token = lexer.next_token();
             println!("{:?}: {}", token, token.to_string().blue());
             if token == Token::Eof {
-                break;
+                return Ok(());
             }
         }
-        Ok(())
     }
 
     fn internal_parse(&mut self, line: String) -> Result<Program> {
@@ -174,28 +140,20 @@ impl Repl {
         if parser.errors.is_empty() {
             Ok(program)
         } else {
-            let errors = parser
-                .errors
-                .iter()
-                .map(|e| ReplError::from(e.clone()))
-                .collect();
-            Err(errors)
+            Err(ReplError::Parser(parser.errors))
         }
     }
 
-    fn format_output(&mut self, output: Object) -> ColoredString {
-        match output {
-            Object::Integer(_) => output.to_string().yellow(),
-            Object::Boolean(_) => output.to_string().yellow(),
-            Object::String(_) => output.to_string().green(),
-            Object::Function(_, _, _) => output.to_string().bright_blue(),
-            Object::Error(_) => output.to_string().red(),
-            _ => output.to_string().white(),
-        }
-    }
+    fn print(&self, obj: Object) {
+        let formatted = match obj {
+            Object::Integer(_) | Object::Boolean(_) => obj.to_string().yellow(),
+            Object::String(_) => obj.to_string().green(),
+            Object::Function(_, _, _) => obj.to_string().bright_blue(),
+            Object::Error(_) => obj.to_string().red(),
+            _ => obj.to_string().white(),
+        };
 
-    fn print(&self, str: ColoredString) {
-        println!("{}", str.bold());
+        println!("{}", formatted.bold());
     }
 
     fn print_welcome(&mut self) {
@@ -233,10 +191,8 @@ impl Repl {
         println!();
     }
 
-    fn print_errors(&mut self, errors: Vec<ReplError>) {
-        for error in errors {
-            println!("{}", error);
-        }
+    fn print_error(&mut self, error: ReplError) {
+        println!("{}", error.to_string().red());
     }
 }
 
