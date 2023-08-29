@@ -1,4 +1,6 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
+
+use super::error::ReplError;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ReplMode {
@@ -23,17 +25,35 @@ impl Display for ReplMode {
     }
 }
 
-impl ReplMode {
-    pub fn from_str(mode_str: &str) -> Result<ReplMode, String> {
+impl FromStr for ReplMode {
+    type Err = Vec<ReplError>;
+
+    fn from_str(mode_str: &str) -> Result<Self, Self::Err> {
         let mode = match mode_str {
             "lexer" => ReplMode::Lexer,
             "parser" => ReplMode::Parser,
             "ast" => ReplMode::Ast,
             "eval" => ReplMode::Eval,
             "compiler" => ReplMode::Compiler,
-            _ => return Err(format!("{:?} is not a valid mode", mode_str)),
+            _ => return Err(vec![ReplError::UnknownMode(mode_str.to_string())]),
         };
 
         Ok(mode)
+    }
+}
+
+trait ReplRun {
+    fn run(&self) -> Result<(), String>;
+}
+
+impl ReplRun for ReplMode {
+    fn run(&self) -> Result<(), String> {
+        match self {
+            ReplMode::Lexer => todo!(),
+            ReplMode::Parser => todo!(),
+            ReplMode::Ast => todo!(),
+            ReplMode::Eval => todo!(),
+            ReplMode::Compiler => todo!(),
+        }
     }
 }

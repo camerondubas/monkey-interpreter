@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ParserError {
     ExpectedIdentifier(Token),
     ExpectedInteger(Token),

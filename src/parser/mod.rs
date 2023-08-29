@@ -3,7 +3,7 @@ use crate::{
     lexer::{Lexer, Token},
 };
 
-mod error;
+pub mod error;
 mod precedence;
 
 use error::ParserError;

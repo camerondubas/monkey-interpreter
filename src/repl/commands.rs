@@ -2,7 +2,10 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::object::Environment;
 
-use super::Repl;
+use super::{
+    error::{ReplError, Result},
+    Repl,
+};
 
 pub enum ReplCommand {
     Help,
@@ -28,7 +31,7 @@ impl ReplCommand {
         }
     }
 
-    pub fn run(&self, repl: &mut Repl) -> Result<(), ()> {
+    pub fn run(&self, repl: &mut Repl) -> Result<()> {
         match self {
             ReplCommand::Help => repl.print_help(),
             ReplCommand::DisplayEnv => println!("{}", repl.environment.borrow()),
@@ -38,7 +41,7 @@ impl ReplCommand {
             }
             ReplCommand::DisplayMode => repl.print_mode(),
             ReplCommand::SetMode(mode) => {
-                repl.set_mode(mode.as_str()).map_err(|_| ())?;
+                repl.set_mode(mode.as_str())?;
                 repl.print_mode();
             }
             ReplCommand::Unknown => {
@@ -46,8 +49,7 @@ impl ReplCommand {
                 return Ok(());
             }
             ReplCommand::Quit => {
-                println!("Bye! 👋");
-                return Err(());
+                return Err(vec![ReplError::Quit]);
             }
         };
 
