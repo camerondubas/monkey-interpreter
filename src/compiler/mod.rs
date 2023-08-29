@@ -39,7 +39,11 @@ impl Compiler {
 
     fn compile_statement(&mut self, statement: Statement) -> CompilerResult {
         match statement {
-            Statement::Expression(expression) => self.compile_expression(expression),
+            Statement::Expression(expression) => {
+                self.compile_expression(expression)?;
+                self.emit(Opcode::Pop, &[]);
+                Ok(())
+            }
             _ => Err(CompilerError::UnhandledStatement(statement)),
         }
     }
@@ -108,29 +112,43 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let test = CompilerTestCase {
-            input: "1 + 2".to_string(),
-            expected_constants: vec![Object::Integer(1), Object::Integer(2)],
-            expected_instructions: vec![
-                make(Opcode::Constant, &[0]),
-                make(Opcode::Constant, &[1]),
-                make(Opcode::Add, &[]),
-            ],
-        };
+        let tests = vec![
+            CompilerTestCase {
+                input: "1 + 2".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "1; 2".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Pop, &[]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+        ];
 
-        let program = Parser::from_source(&test.input).parse_program();
-        let mut compiler = Compiler::new();
-        assert!(compiler.compile(program).is_ok());
+        for test in tests {
+            let program = Parser::from_source(&test.input).parse_program();
+            let mut compiler = Compiler::new();
+            assert!(compiler.compile(program).is_ok());
 
-        let bytecode = compiler.bytecode();
+            let bytecode = compiler.bytecode();
 
-        let expected = Instructions::from(test.expected_instructions);
-        assert_eq!(
-            expected.print(),
-            bytecode.instructions.print(),
-            "instructions"
-        );
-
-        assert_eq!(test.expected_constants, bytecode.constants, "constants");
+            let expected = Instructions::from(test.expected_instructions);
+            assert_eq!(
+                expected.print(),
+                bytecode.instructions.print(),
+                "instructions"
+            );
+            assert_eq!(test.expected_constants, bytecode.constants, "constants");
+        }
     }
 }

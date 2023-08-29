@@ -96,7 +96,7 @@ impl Repl {
 
         vm.run()?;
 
-        self.print(vm.stack_top());
+        self.print(vm.last_popped_stack_elem());
         Ok(())
     }
 

@@ -66,6 +66,7 @@ impl From<Vec<Instructions>> for Instructions {
 pub enum Opcode {
     Constant = 1,
     Add = 2,
+    Pop = 3,
 }
 
 pub struct Definition {
@@ -110,6 +111,10 @@ impl Opcode {
                 name: "Add".to_string(),
                 operand_widths: vec![],
             },
+            Opcode::Pop => Definition {
+                name: "Pop".to_string(),
+                operand_widths: vec![],
+            },
         }
     }
 }
@@ -119,6 +124,7 @@ impl From<u8> for Opcode {
         match opcode {
             1 => Opcode::Constant,
             2 => Opcode::Add,
+            3 => Opcode::Pop,
             _ => panic!("Opcode not found"),
         }
     }

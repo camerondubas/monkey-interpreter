@@ -72,6 +72,9 @@ impl VirtualMachine {
                         _ => return Err(VirtualMachineError::UnsupportedAddition(left, right)),
                     };
                 }
+                Opcode::Pop => {
+                    self.pop()?;
+                }
             }
         }
         Ok(())
@@ -109,6 +112,10 @@ impl VirtualMachine {
             None => Object::Null, // TODO: Return an error instead (?)
         }
     }
+
+    pub fn last_popped_stack_elem(&mut self) -> Object {
+        self.stack[self.stack_pointer].clone()
+    }
 }
 
 #[cfg(test)]
@@ -140,6 +147,10 @@ mod tests {
                 input: "1 + 2 + 6".to_string(),
                 expected: 9,
             },
+            VMTestCase {
+                input: "1 + 2 + 6".to_string(),
+                expected: 9,
+            },
         ];
 
         for test in tests {
@@ -150,7 +161,7 @@ mod tests {
             let mut vm = VirtualMachine::new(compiler.bytecode());
             assert!(vm.run().is_ok());
 
-            let stack_elem = vm.stack_top();
+            let stack_elem = vm.last_popped_stack_elem();
 
             assert_eq!(Object::Integer(test.expected), stack_elem, "stack_elem");
         }
