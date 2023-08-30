@@ -1,3 +1,5 @@
+use std::fmt::Binary;
+
 #[derive(Default, Debug, Clone)]
 pub struct Instructions(pub Vec<u8>);
 
@@ -14,6 +16,7 @@ impl Instructions {
         self.0.len()
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -22,6 +25,7 @@ impl Instructions {
         self.0.extend(instructions.0);
     }
 
+    #[allow(dead_code)]
     pub fn print(&self) -> String {
         let mut printed_instructions = String::new();
         let mut offset = 0;
@@ -45,6 +49,15 @@ impl Instructions {
     }
 }
 
+impl Binary for Instructions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for byte in self.0.iter() {
+            write!(f, "{:08b}", byte)?;
+        }
+        Ok(())
+    }
+}
+
 impl PartialEq<Vec<u8>> for Instructions {
     fn eq(&self, other: &Vec<u8>) -> bool {
         &self.0 == other
@@ -62,11 +75,16 @@ impl From<Vec<Instructions>> for Instructions {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Opcode {
     Constant = 1,
+
     Add = 2,
-    Pop = 3,
+    Sub = 3,
+    Mul = 4,
+    Div = 5,
+
+    Pop = 6,
 }
 
 pub struct Definition {
@@ -75,6 +93,13 @@ pub struct Definition {
 }
 
 impl Definition {
+    pub fn new(name: &str, operand_widths: Vec<usize>) -> Self {
+        Definition {
+            name: name.to_string(),
+            operand_widths,
+        }
+    }
+
     pub fn size(&self) -> usize {
         let base_size = 1;
         self.operand_widths.iter().sum::<usize>() + base_size
@@ -103,18 +128,14 @@ impl Definition {
 impl Opcode {
     fn definition(&self) -> Definition {
         match self {
-            Opcode::Constant => Definition {
-                name: "Constant".to_string(),
-                operand_widths: vec![2],
-            },
-            Opcode::Add => Definition {
-                name: "Add".to_string(),
-                operand_widths: vec![],
-            },
-            Opcode::Pop => Definition {
-                name: "Pop".to_string(),
-                operand_widths: vec![],
-            },
+            Opcode::Constant => Definition::new("Constant", vec![2]),
+
+            Opcode::Add => Definition::new("Add", vec![]),
+            Opcode::Sub => Definition::new("Sub", vec![]),
+            Opcode::Mul => Definition::new("Mul", vec![]),
+            Opcode::Div => Definition::new("Div", vec![]),
+
+            Opcode::Pop => Definition::new("Pop", vec![]),
         }
     }
 }
@@ -123,8 +144,13 @@ impl From<u8> for Opcode {
     fn from(opcode: u8) -> Self {
         match opcode {
             1 => Opcode::Constant,
+
             2 => Opcode::Add,
-            3 => Opcode::Pop,
+            3 => Opcode::Sub,
+            4 => Opcode::Mul,
+            5 => Opcode::Div,
+
+            6 => Opcode::Pop,
             _ => panic!("Opcode not found"),
         }
     }
@@ -180,6 +206,7 @@ mod tests {
         operands: Vec<u16>,
         expected: Vec<u8>,
     }
+
     #[test]
     fn test_make() {
         let tests: Vec<TestMake> = vec![
@@ -223,12 +250,18 @@ mod tests {
             make(Opcode::Constant, &[1]),
             make(Opcode::Constant, &[2]),
             make(Opcode::Constant, &[65535]),
+            make(Opcode::Sub, &[]),
+            make(Opcode::Mul, &[]),
+            make(Opcode::Div, &[]),
         ];
 
         let expected = "0000 Add
 0001 Constant 1
 0004 Constant 2
 0007 Constant 65535
+0010 Sub
+0011 Mul
+0012 Div
 ";
 
         assert_eq!(Instructions::from(instructions).print(), expected);

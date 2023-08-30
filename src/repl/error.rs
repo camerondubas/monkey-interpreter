@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use colored::Colorize;
 
-use crate::{compiler::error::CompilerError, parser::error::ParserError, vm::VirtualMachineError};
+use crate::{
+    compiler::error::CompilerError, parser::error::ParserError, vm::error::VirtualMachineError,
+};
 
 pub type Result<T = ()> = std::result::Result<T, ReplError>;
 pub enum ReplError {

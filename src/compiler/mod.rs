@@ -56,6 +56,9 @@ impl Compiler {
 
                 match operator {
                     Token::Plus => self.emit(Opcode::Add, &[]),
+                    Token::Minus => self.emit(Opcode::Sub, &[]),
+                    Token::Asterisk => self.emit(Opcode::Mul, &[]),
+                    Token::Slash => self.emit(Opcode::Div, &[]),
                     _ => return Err(CompilerError::UnknownOperator(operator)),
                 };
             }
@@ -99,7 +102,7 @@ impl Compiler {
 mod tests {
     use crate::{
         code::{make, Opcode},
-        parser::Parser,
+        test_utils::compile_from_source,
     };
 
     use super::*;
@@ -130,6 +133,28 @@ mod tests {
                     make(Opcode::Constant, &[0]),
                     make(Opcode::Pop, &[]),
                     make(Opcode::Constant, &[1]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "((1 + 8 - 1) / 2) * 3".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(8),
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                ],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
+                    make(Opcode::Constant, &[2]),
+                    make(Opcode::Sub, &[]),
+                    make(Opcode::Constant, &[3]),
+                    make(Opcode::Div, &[]),
+                    make(Opcode::Constant, &[4]),
+                    make(Opcode::Mul, &[]),
                     make(Opcode::Pop, &[]),
                 ],
             },
