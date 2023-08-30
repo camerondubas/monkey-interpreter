@@ -5,4 +5,5 @@ pub mod eval;
 pub mod lexer;
 pub mod object;
 pub mod parser;
+pub mod test_utils;
 pub mod vm;

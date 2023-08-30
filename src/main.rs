@@ -6,6 +6,7 @@ mod lexer;
 mod object;
 mod parser;
 mod repl;
+mod test_utils;
 mod vm;
 
 use std::{cell::RefCell, env, fs, rc::Rc};

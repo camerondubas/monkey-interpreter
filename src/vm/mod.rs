@@ -154,16 +154,15 @@ mod tests {
         ];
 
         for test in tests {
-            let program = Parser::from_source(&test.input).parse_program();
-            let mut compiler = Compiler::new();
-            assert!(compiler.compile(program).is_ok());
-
+            let compiler = compile_from_source(&test.input);
             let mut vm = VirtualMachine::new(compiler.bytecode());
-            assert!(vm.run().is_ok());
 
-            let stack_elem = vm.last_popped_stack_elem();
+            if let Err(error) = vm.run() {
+                panic!("vm error: {}", error);
+            }
 
-            assert_eq!(Object::Integer(test.expected), stack_elem, "stack_elem");
+            let output = vm.last_popped_stack_elem();
+            assert_eq!(Object::Integer(test.expected), output);
         }
     }
 }

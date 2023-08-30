@@ -136,10 +136,7 @@ mod tests {
         ];
 
         for test in tests {
-            let program = Parser::from_source(&test.input).parse_program();
-            let mut compiler = Compiler::new();
-            assert!(compiler.compile(program).is_ok());
-
+            let compiler = compile_from_source(&test.input);
             let bytecode = compiler.bytecode();
 
             let expected = Instructions::from(test.expected_instructions);
