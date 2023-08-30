@@ -85,6 +85,9 @@ pub enum Opcode {
     Div = 5,
 
     Pop = 6,
+    //Push = 7,
+    True = 8,
+    False = 9,
 }
 
 pub struct Definition {
@@ -136,6 +139,9 @@ impl Opcode {
             Opcode::Div => Definition::new("Div", vec![]),
 
             Opcode::Pop => Definition::new("Pop", vec![]),
+
+            Opcode::True => Definition::new("True", vec![]),
+            Opcode::False => Definition::new("False", vec![]),
         }
     }
 }
@@ -151,6 +157,10 @@ impl From<u8> for Opcode {
             5 => Opcode::Div,
 
             6 => Opcode::Pop,
+            // 7 => Opcode::Push,
+            8 => Opcode::True,
+            9 => Opcode::False,
+
             _ => panic!("Opcode not found"),
         }
     }

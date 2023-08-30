@@ -9,7 +9,7 @@ use crate::{
 
 use self::error::{CompilerError, CompilerResult};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Bytecode {
     pub instructions: Instructions,
     pub constants: Vec<Object>,
@@ -67,6 +67,13 @@ impl Compiler {
                 let id = self.add_constant(integer);
 
                 self.emit(Opcode::Constant, &[id]);
+            }
+            Expression::Boolean(value) => {
+                if value {
+                    self.emit(Opcode::True, &[]);
+                } else {
+                    self.emit(Opcode::False, &[]);
+                }
             }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
@@ -157,6 +164,35 @@ mod tests {
                     make(Opcode::Mul, &[]),
                     make(Opcode::Pop, &[]),
                 ],
+            },
+        ];
+
+        for test in tests {
+            let compiler = compile_from_source(&test.input);
+            let bytecode = compiler.bytecode();
+
+            let expected = Instructions::from(test.expected_instructions);
+            assert_eq!(
+                expected.print(),
+                bytecode.instructions.print(),
+                "instructions"
+            );
+            assert_eq!(test.expected_constants, bytecode.constants, "constants");
+        }
+    }
+
+    #[test]
+    fn test_boolean_expressions() {
+        let tests = vec![
+            CompilerTestCase {
+                input: "true".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![make(Opcode::True, &[]), make(Opcode::Pop, &[])],
+            },
+            CompilerTestCase {
+                input: "false".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![make(Opcode::False, &[]), make(Opcode::Pop, &[])],
             },
         ];
 

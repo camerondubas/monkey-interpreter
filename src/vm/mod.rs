@@ -8,6 +8,8 @@ use crate::{
 };
 
 const STACK_SIZE: usize = 2048;
+const TRUE: Object = Object::Boolean(true);
+const FALSE: Object = Object::Boolean(false);
 
 #[derive(Default)]
 pub struct VirtualMachine {
@@ -47,6 +49,12 @@ impl VirtualMachine {
                 }
                 Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div => {
                     self.execute_binary_operation(opcode)?;
+                }
+                Opcode::True => {
+                    self.push(TRUE)?;
+                }
+                Opcode::False => {
+                    self.push(FALSE)?;
                 }
                 Opcode::Pop => {
                     self.pop()?;
@@ -118,16 +126,37 @@ mod tests {
     use super::*;
     use crate::test_utils::compile_from_source;
 
+    enum Output {
+        Integer(i64),
+        Boolean(bool),
+    }
+
     struct VMTestCase {
         input: String,
-        expected: i64,
+        expected: Output,
     }
 
     impl VMTestCase {
-        fn new(input: &str, expected: i64) -> Self {
+        fn int(input: &str, expected: i64) -> Self {
             VMTestCase {
                 input: input.to_string(),
-                expected,
+                expected: Output::Integer(expected),
+            }
+        }
+
+        fn bool(input: &str, expected: bool) -> Self {
+            VMTestCase {
+                input: input.to_string(),
+                expected: Output::Boolean(expected),
+            }
+        }
+    }
+
+    impl From<Output> for Object {
+        fn from(output: Output) -> Self {
+            match output {
+                Output::Integer(value) => Object::Integer(value),
+                Output::Boolean(value) => Object::Boolean(value),
             }
         }
     }
@@ -135,19 +164,19 @@ mod tests {
     #[test]
     fn test_integer_arithmetic() {
         let tests: Vec<VMTestCase> = vec![
-            VMTestCase::new("1", 1),
-            VMTestCase::new("2", 2),
-            VMTestCase::new("1 + 2", 3),
-            VMTestCase::new("1 + 2 + 6", 9),
-            VMTestCase::new("1 - 2", -1),
-            VMTestCase::new("1 * 2", 2),
-            VMTestCase::new("4 / 2", 2),
-            VMTestCase::new("50 / 2 * 2 + 10 - 5", 55),
-            VMTestCase::new("5 + 5 + 5 + 5 - 10", 10),
-            VMTestCase::new("2 * 2 * 2 * 2 * 2", 32),
-            VMTestCase::new("5 * 2 + 10", 20),
-            VMTestCase::new("5 + 2 * 10", 25),
-            VMTestCase::new("5 * (2 + 10)", 60),
+            VMTestCase::int("1", 1),
+            VMTestCase::int("2", 2),
+            VMTestCase::int("1 + 2", 3),
+            VMTestCase::int("1 + 2 + 6", 9),
+            VMTestCase::int("1 - 2", -1),
+            VMTestCase::int("1 * 2", 2),
+            VMTestCase::int("4 / 2", 2),
+            VMTestCase::int("50 / 2 * 2 + 10 - 5", 55),
+            VMTestCase::int("5 + 5 + 5 + 5 - 10", 10),
+            VMTestCase::int("2 * 2 * 2 * 2 * 2", 32),
+            VMTestCase::int("5 * 2 + 10", 20),
+            VMTestCase::int("5 + 2 * 10", 25),
+            VMTestCase::int("5 * (2 + 10)", 60),
         ];
 
         for test in tests {
@@ -159,7 +188,27 @@ mod tests {
             }
 
             let output = vm.last_popped_stack_elem();
-            assert_eq!(Object::Integer(test.expected), output);
+            assert_eq!(Object::from(test.expected), output);
+        }
+    }
+
+    #[test]
+    fn test_boolean_expressions() {
+        let tests: Vec<VMTestCase> = vec![
+            VMTestCase::bool("true", true),
+            VMTestCase::bool("false", false),
+        ];
+
+        for test in tests {
+            let compiler = compile_from_source(&test.input);
+            let mut vm = VirtualMachine::new(compiler.bytecode());
+
+            if let Err(error) = vm.run() {
+                panic!("vm error: {}", error);
+            }
+
+            let output = vm.last_popped_stack_elem();
+            assert_eq!(Object::from(test.expected), output);
         }
     }
 }
