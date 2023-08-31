@@ -1,5 +1,9 @@
 use std::fmt::Binary;
 
+use self::opcode::Definition;
+pub use self::opcode::Opcode;
+mod opcode;
+
 #[derive(Default, Debug, Clone)]
 pub struct Instructions(pub Vec<u8>);
 
@@ -75,102 +79,11 @@ impl From<Vec<Instructions>> for Instructions {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Opcode {
-    Constant = 1,
-
-    Add = 2,
-    Sub = 3,
-    Mul = 4,
-    Div = 5,
-
-    Pop = 6,
-    //Push = 7,
-    True = 8,
-    False = 9,
-}
-
-pub struct Definition {
-    name: String,
-    operand_widths: Vec<usize>,
-}
-
-impl Definition {
-    pub fn new(name: &str, operand_widths: Vec<usize>) -> Self {
-        Definition {
-            name: name.to_string(),
-            operand_widths,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        let base_size = 1;
-        self.operand_widths.iter().sum::<usize>() + base_size
-    }
-
-    pub fn read_operands(&self, instructions: &[u8]) -> (Vec<u16>, usize) {
-        let mut operands = Vec::new();
-        let mut offset = 0;
-
-        for width in self.operand_widths.iter() {
-            match width {
-                2 => {
-                    let operand =
-                        u16::from_be_bytes([instructions[offset], instructions[offset + 1]]);
-                    operands.push(operand);
-                }
-                _ => panic!("Unhandled operand width"),
-            }
-            offset += width;
-        }
-
-        (operands, offset)
-    }
-}
-
-impl Opcode {
-    fn definition(&self) -> Definition {
-        match self {
-            Opcode::Constant => Definition::new("Constant", vec![2]),
-
-            Opcode::Add => Definition::new("Add", vec![]),
-            Opcode::Sub => Definition::new("Sub", vec![]),
-            Opcode::Mul => Definition::new("Mul", vec![]),
-            Opcode::Div => Definition::new("Div", vec![]),
-
-            Opcode::Pop => Definition::new("Pop", vec![]),
-
-            Opcode::True => Definition::new("True", vec![]),
-            Opcode::False => Definition::new("False", vec![]),
-        }
-    }
-}
-
-impl From<u8> for Opcode {
-    fn from(opcode: u8) -> Self {
-        match opcode {
-            1 => Opcode::Constant,
-
-            2 => Opcode::Add,
-            3 => Opcode::Sub,
-            4 => Opcode::Mul,
-            5 => Opcode::Div,
-
-            6 => Opcode::Pop,
-            // 7 => Opcode::Push,
-            8 => Opcode::True,
-            9 => Opcode::False,
-
-            _ => panic!("Opcode not found"),
-        }
-    }
-}
-
 pub fn make(op: Opcode, operands: &[u16]) -> Instructions {
     let definition = op.definition();
     let mut instruction = Vec::with_capacity(definition.size());
 
-    instruction.push(op as u8);
+    instruction.push(op.into());
 
     for (idx, operand) in operands.iter().enumerate() {
         match definition.operand_widths.get(idx) {
@@ -223,27 +136,27 @@ mod tests {
             TestMake {
                 opcode: Opcode::Constant,
                 operands: vec![0],
-                expected: vec![Opcode::Constant as u8, 0, 0],
+                expected: vec![Opcode::Constant.into(), 0, 0],
             },
             TestMake {
                 opcode: Opcode::Constant,
                 operands: vec![1],
-                expected: vec![Opcode::Constant as u8, 0, 1],
+                expected: vec![Opcode::Constant.into(), 0, 1],
             },
             TestMake {
                 opcode: Opcode::Constant,
                 operands: vec![65534],
-                expected: vec![Opcode::Constant as u8, 255, 254],
+                expected: vec![Opcode::Constant.into(), 255, 254],
             },
             TestMake {
                 opcode: Opcode::Constant,
                 operands: vec![65535],
-                expected: vec![Opcode::Constant as u8, 255, 255],
+                expected: vec![Opcode::Constant.into(), 255, 255],
             },
             TestMake {
                 opcode: Opcode::Add,
                 operands: vec![],
-                expected: vec![Opcode::Add as u8],
+                expected: vec![Opcode::Add.into()],
             },
         ];
 
