@@ -1,15 +1,15 @@
 pub mod error;
-
 use self::error::{Result, VirtualMachineError};
 use crate::{
     code::{Instructions, Opcode},
     compiler::Bytecode,
-    object::Object,
+    object::{
+        constants::{FALSE, TRUE},
+        Object,
+    },
 };
 
 const STACK_SIZE: usize = 2048;
-const TRUE: Object = Object::Boolean(true);
-const FALSE: Object = Object::Boolean(false);
 
 #[derive(Default)]
 pub struct VirtualMachine {

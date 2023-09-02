@@ -3,16 +3,15 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use crate::{
     ast::{Expression, Program, Statement},
     lexer::Token,
-    object::{Environment, HashKey, Object},
+    object::{
+        constants::{FALSE, NULL, TRUE},
+        Environment, HashKey, Object,
+    },
 };
 
 mod builtins;
 
 use self::builtins::get_builtin_fn;
-
-const NULL: Object = Object::Null;
-const TRUE: Object = Object::Boolean(true);
-const FALSE: Object = Object::Boolean(false);
 
 pub fn eval(program: Program, environment: Rc<RefCell<Environment>>) -> Object {
     let mut result = NULL;

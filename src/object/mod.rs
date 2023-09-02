@@ -1,10 +1,8 @@
+pub mod constants;
 mod environment;
-
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
-
-pub use environment::Environment;
-
 use crate::ast::{Expression, Statement};
+pub use environment::Environment;
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Object {
