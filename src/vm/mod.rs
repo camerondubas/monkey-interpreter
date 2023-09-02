@@ -47,7 +47,13 @@ impl VirtualMachine {
                     instruction_pointer += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
-                Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div => {
+                Opcode::Add
+                | Opcode::Sub
+                | Opcode::Mul
+                | Opcode::Div
+                | Opcode::GreaterThan
+                | Opcode::Equal
+                | Opcode::NotEqual => {
                     self.execute_binary_operation(opcode)?;
                 }
                 Opcode::True => {
@@ -112,12 +118,32 @@ impl VirtualMachine {
                 Opcode::Sub => self.push(Object::Integer(left - right))?,
                 Opcode::Mul => self.push(Object::Integer(left * right))?,
                 Opcode::Div => self.push(Object::Integer(left / right))?,
+
+                Opcode::GreaterThan => self.push(self.to_bool_obj(left > right))?,
+                Opcode::Equal => self.push(self.to_bool_obj(left == right))?,
+                Opcode::NotEqual => self.push(self.to_bool_obj(left != right))?,
+
                 _ => return Err(VirtualMachineError::UnknownIntegerOperator(opcode)),
             },
+            (Object::Boolean(left), Object::Boolean(right)) => match opcode {
+                Opcode::Equal => self.push(self.to_bool_obj(left == right))?,
+                Opcode::NotEqual => self.push(self.to_bool_obj(left != right))?,
+
+                _ => return Err(VirtualMachineError::UnknownBooleanOperator(opcode)),
+            },
+
             _ => return Err(VirtualMachineError::UnsupportedAddition(left, right)),
         };
 
         Ok(Object::Null)
+    }
+
+    fn to_bool_obj(&self, value: bool) -> Object {
+        if value {
+            TRUE
+        } else {
+            FALSE
+        }
     }
 }
 
@@ -197,9 +223,26 @@ mod tests {
         let tests: Vec<VMTestCase> = vec![
             VMTestCase::bool("true", true),
             VMTestCase::bool("false", false),
+            VMTestCase::bool("1 < 2", true),
+            VMTestCase::bool("1 > 2", false),
+            VMTestCase::bool("1 < 1", false),
+            VMTestCase::bool("1 > 1", false),
+            VMTestCase::bool("1 == 1", true),
+            VMTestCase::bool("1 != 1", false),
+            VMTestCase::bool("1 == 2", false),
+            VMTestCase::bool("1 != 2", true),
+            VMTestCase::bool("true == true", true),
+            VMTestCase::bool("false == false", true),
+            VMTestCase::bool("true == false", false),
+            VMTestCase::bool("true != false", true),
+            VMTestCase::bool("(1 < 2) == true", true),
+            VMTestCase::bool("(1 < 2) == false", false),
+            VMTestCase::bool("(1 > 2) == true", false),
+            VMTestCase::bool("(1 > 2) == false", true),
         ];
 
         for test in tests {
+            println!("test: {:?}", test.input);
             let compiler = compile_from_source(&test.input);
             let mut vm = VirtualMachine::new(compiler.bytecode());
 

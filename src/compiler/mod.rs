@@ -51,6 +51,13 @@ impl Compiler {
     fn compile_expression(&mut self, expression: Expression) -> CompilerResult {
         match expression {
             Expression::InfixExpression(left, operator, right) => {
+                if let Token::Lt = operator {
+                    self.compile_expression(*right)?;
+                    self.compile_expression(*left)?;
+                    self.emit(Opcode::GreaterThan, &[]);
+                    return Ok(());
+                }
+
                 self.compile_expression(*left)?;
                 self.compile_expression(*right)?;
 
@@ -59,6 +66,9 @@ impl Compiler {
                     Token::Minus => self.emit(Opcode::Sub, &[]),
                     Token::Asterisk => self.emit(Opcode::Mul, &[]),
                     Token::Slash => self.emit(Opcode::Div, &[]),
+                    Token::Eq => self.emit(Opcode::Equal, &[]),
+                    Token::NotEq => self.emit(Opcode::NotEqual, &[]),
+                    Token::Gt => self.emit(Opcode::GreaterThan, &[]),
                     _ => return Err(CompilerError::UnknownOperator(operator)),
                 };
             }
@@ -194,9 +204,70 @@ mod tests {
                 expected_constants: vec![],
                 expected_instructions: vec![make(Opcode::False, &[]), make(Opcode::Pop, &[])],
             },
+            CompilerTestCase {
+                input: "1 > 2".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::GreaterThan, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "1 < 2".to_string(),
+                expected_constants: vec![Object::Integer(2), Object::Integer(1)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::GreaterThan, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "1 == 2".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Equal, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "1 != 2".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::NotEqual, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "true == false".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![
+                    make(Opcode::True, &[]),
+                    make(Opcode::False, &[]),
+                    make(Opcode::Equal, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "true != false".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![
+                    make(Opcode::True, &[]),
+                    make(Opcode::False, &[]),
+                    make(Opcode::NotEqual, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
         ];
 
         for test in tests {
+            println!("test: {}", test.input);
             let compiler = compile_from_source(&test.input);
             let bytecode = compiler.bytecode();
 

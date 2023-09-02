@@ -8,6 +8,7 @@ pub enum VirtualMachineError {
     StackUnderflow,
     UnsupportedAddition(Object, Object),
     UnknownIntegerOperator(Opcode),
+    UnknownBooleanOperator(Opcode),
 }
 
 impl Display for VirtualMachineError {
@@ -20,6 +21,9 @@ impl Display for VirtualMachineError {
             }
             VirtualMachineError::UnknownIntegerOperator(opcode) => {
                 write!(f, "Unknown integer operator: {:?}", opcode)
+            }
+            VirtualMachineError::UnknownBooleanOperator(opcode) => {
+                write!(f, "Unknown boolean operator: {:?}", opcode)
             }
         }
     }
