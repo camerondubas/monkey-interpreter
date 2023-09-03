@@ -11,11 +11,14 @@ const FALSE: u8 = 8;
 const EQUAL: u8 = 9;
 const NOT_EQUAL: u8 = 10;
 const GREATER_THAN: u8 = 11;
+const MINUS: u8 = 12;
+const BANG: u8 = 13;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Opcode {
     Constant,
 
+    // Arithmetic operators
     Add,
     Sub,
     Mul,
@@ -23,12 +26,18 @@ pub enum Opcode {
 
     Pop,
 
+    // Booleans
     True,
     False,
 
+    // Comparison operators
     Equal,
     NotEqual,
     GreaterThan,
+
+    // Prefix operators
+    Minus,
+    Bang,
 }
 
 impl Opcode {
@@ -49,6 +58,9 @@ impl Opcode {
             Opcode::Equal => Definition::new("Equal", vec![]),
             Opcode::NotEqual => Definition::new("NotEqual", vec![]),
             Opcode::GreaterThan => Definition::new("GreaterThan", vec![]),
+
+            Opcode::Minus => Definition::new("Minus", vec![]),
+            Opcode::Bang => Definition::new("Bang", vec![]),
         }
     }
 }
@@ -71,6 +83,9 @@ impl From<Opcode> for u8 {
             Opcode::Equal => EQUAL,
             Opcode::NotEqual => NOT_EQUAL,
             Opcode::GreaterThan => GREATER_THAN,
+
+            Opcode::Minus => MINUS,
+            Opcode::Bang => BANG,
         }
     }
 }
@@ -93,6 +108,9 @@ impl From<u8> for Opcode {
             EQUAL => Opcode::Equal,
             NOT_EQUAL => Opcode::NotEqual,
             GREATER_THAN => Opcode::GreaterThan,
+
+            MINUS => Opcode::Minus,
+            BANG => Opcode::Bang,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }

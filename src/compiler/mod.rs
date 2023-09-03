@@ -69,7 +69,7 @@ impl Compiler {
                     Token::Eq => self.emit(Opcode::Equal, &[]),
                     Token::NotEq => self.emit(Opcode::NotEqual, &[]),
                     Token::Gt => self.emit(Opcode::GreaterThan, &[]),
-                    _ => return Err(CompilerError::UnknownOperator(operator)),
+                    _ => return Err(CompilerError::UnknownInfixOperator(operator)),
                 };
             }
             Expression::IntegerLiteral(value) => {
@@ -84,6 +84,14 @@ impl Compiler {
                 } else {
                     self.emit(Opcode::False, &[]);
                 }
+            }
+            Expression::PrefixExpression(token, expression) => {
+                self.compile_expression(*expression)?;
+                match token {
+                    Token::Bang => self.emit(Opcode::Bang, &[]),
+                    Token::Minus => self.emit(Opcode::Minus, &[]),
+                    _ => return Err(CompilerError::UnknownPrefixOperator(token)),
+                };
             }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
@@ -175,6 +183,15 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
+            CompilerTestCase {
+                input: "-1".to_string(),
+                expected_constants: vec![Object::Integer(1)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Minus, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
         ];
 
         for test in tests {
@@ -261,6 +278,15 @@ mod tests {
                     make(Opcode::True, &[]),
                     make(Opcode::False, &[]),
                     make(Opcode::NotEqual, &[]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            CompilerTestCase {
+                input: "!true".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![
+                    make(Opcode::True, &[]),
+                    make(Opcode::Bang, &[]),
                     make(Opcode::Pop, &[]),
                 ],
             },

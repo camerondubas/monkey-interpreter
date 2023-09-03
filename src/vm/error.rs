@@ -9,6 +9,7 @@ pub enum VirtualMachineError {
     UnsupportedAddition(Object, Object),
     UnknownIntegerOperator(Opcode),
     UnknownBooleanOperator(Opcode),
+    UnsupportedMinus(Object),
 }
 
 impl Display for VirtualMachineError {
@@ -24,6 +25,9 @@ impl Display for VirtualMachineError {
             }
             VirtualMachineError::UnknownBooleanOperator(opcode) => {
                 write!(f, "Unknown boolean operator: {:?}", opcode)
+            }
+            VirtualMachineError::UnsupportedMinus(opcode) => {
+                write!(f, "Unsupported minus: -{:?}", opcode)
             }
         }
     }

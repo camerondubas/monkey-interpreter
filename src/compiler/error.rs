@@ -9,7 +9,8 @@ pub type CompilerResult = Result<(), CompilerError>;
 pub enum CompilerError {
     UnhandledStatement(Statement),
     UnhandledExpression(Expression),
-    UnknownOperator(Token),
+    UnknownInfixOperator(Token),
+    UnknownPrefixOperator(Token),
 }
 
 impl Display for CompilerError {
@@ -21,8 +22,11 @@ impl Display for CompilerError {
             CompilerError::UnhandledExpression(expression) => {
                 write!(f, "Unhandled expression: {:?}", expression)
             }
-            CompilerError::UnknownOperator(operator) => {
-                write!(f, "Unknown operator: {:?} ", operator)
+            CompilerError::UnknownInfixOperator(operator) => {
+                write!(f, "Unknown infix operator: {:?} ", operator)
+            }
+            CompilerError::UnknownPrefixOperator(operator) => {
+                write!(f, "Unknown prefix operator: {:?} ", operator)
             }
         }
     }
