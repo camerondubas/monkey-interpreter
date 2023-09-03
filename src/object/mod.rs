@@ -4,6 +4,8 @@ use crate::ast::{Expression, Statement};
 pub use environment::Environment;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
+use self::constants::{FALSE, TRUE};
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Object {
     Integer(i64),
@@ -45,6 +47,16 @@ impl From<&HashKey> for Object {
             HashKey::String(string) => Object::String(string.clone()),
             HashKey::Integer(integer) => Object::Integer(*integer),
             HashKey::Boolean(boolean) => Object::Boolean(*boolean),
+        }
+    }
+}
+
+impl From<bool> for Object {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            TRUE
+        } else {
+            FALSE
         }
     }
 }

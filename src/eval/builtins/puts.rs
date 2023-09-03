@@ -1,10 +1,10 @@
-use crate::object::Object;
+use crate::object::{constants::NULL, Object};
 
 pub(crate) fn puts(args: Vec<Object>) -> Object {
     for arg in args {
         println!("{}", arg);
     }
-    Object::Null
+    NULL
 }
 
 #[cfg(test)]

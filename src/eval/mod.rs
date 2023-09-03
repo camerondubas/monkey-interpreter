@@ -305,7 +305,7 @@ fn eval_index(left: Expression, idx: Expression, environment: Rc<RefCell<Environ
 
             match pairs.get(&key) {
                 Some(val) => val.clone(),
-                None => Object::Null,
+                None => NULL,
             }
         }
         Object::Error(_) => left_obj,
