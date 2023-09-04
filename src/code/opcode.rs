@@ -15,6 +15,7 @@ const MINUS: u8 = 12;
 const BANG: u8 = 13;
 const JUMP_NOT_TRUTHY: u8 = 14;
 const JUMP: u8 = 15;
+const NULL: u8 = 16;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
@@ -44,6 +45,8 @@ pub enum Opcode {
     // Jumps
     JumpNotTruthy,
     Jump,
+
+    Null,
 }
 
 impl Opcode {
@@ -70,6 +73,8 @@ impl Opcode {
 
             Opcode::JumpNotTruthy => Definition::new("JumpNotTruthy", vec![2]),
             Opcode::Jump => Definition::new("Jump", vec![2]),
+
+            Opcode::Null => Definition::new("Null", vec![]),
         }
     }
 }
@@ -98,6 +103,8 @@ impl From<Opcode> for u8 {
 
             Opcode::JumpNotTruthy => JUMP_NOT_TRUTHY,
             Opcode::Jump => JUMP,
+
+            Opcode::Null => NULL,
         }
     }
 }
@@ -126,6 +133,8 @@ impl From<u8> for Opcode {
 
             JUMP_NOT_TRUTHY => Opcode::JumpNotTruthy,
             JUMP => Opcode::Jump,
+
+            NULL => Opcode::Null,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }

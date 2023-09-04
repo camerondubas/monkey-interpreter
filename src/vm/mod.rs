@@ -64,6 +64,7 @@ impl VirtualMachine {
                 Opcode::Bang => match self.pop()? {
                     TRUE => self.push(FALSE)?,
                     FALSE => self.push(TRUE)?,
+                    NULL => self.push(TRUE)?,
                     _ => self.push(FALSE)?,
                 },
                 Opcode::Minus => match self.pop()? {
@@ -86,6 +87,7 @@ impl VirtualMachine {
                     // TODO: look into why we don't have to subtract 1 here
                     instruction_pointer = jump_position as usize;
                 }
+                Opcode::Null => self.push(NULL)?,
             }
         }
         Ok(())
@@ -231,6 +233,7 @@ mod tests {
             TestCase::new("!!true", TRUE),
             TestCase::new("!!false", FALSE),
             TestCase::new("!!5", TRUE),
+            TestCase::new("!(if (false) { 5; })", TRUE),
         ];
 
         run_vm_tests(tests);
@@ -248,6 +251,10 @@ mod tests {
             TestCase::new("if (1 > 2) { 10 } else { 20 }", Object::Integer(20)),
             TestCase::new("if (1 > 2) { 10 }", NULL),
             TestCase::new("if (false) { 10 }", NULL),
+            TestCase::new(
+                "if ((if (false) { 10 })) { 10 } else { 20 }",
+                Object::Integer(20),
+            ),
         ];
 
         run_vm_tests(tests);

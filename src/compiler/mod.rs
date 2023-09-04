@@ -147,27 +147,23 @@ impl Compiler {
             self.remove_last_pop();
         }
 
+        let jump_position = self.emit(Opcode::Jump, &[temp_position]);
+
+        let after_consequence_position = self.instructions.len();
+        self.change_operand(jump_not_truthy_position, after_consequence_position as u16);
+
         if let Some(alternative) = alternative {
-            // We use a temp position until we compile the consequence
-            // to know how far to jump. TODO: is there a better way to do this?
-            let temp_position = 9999;
-            let jump_position = self.emit(Opcode::Jump, &[temp_position]);
-
-            let after_consequence_position = self.instructions.len();
-            self.change_operand(jump_not_truthy_position, after_consequence_position as u16);
-
             self.compile_statement(*alternative)?;
 
             if self.last_instruction_is(Opcode::Pop) {
                 self.remove_last_pop();
             }
-
-            let after_alternative_position = self.instructions.len();
-            self.change_operand(jump_position, after_alternative_position as u16);
         } else {
-            let after_consequence_position = self.instructions.len();
-            self.change_operand(jump_not_truthy_position, after_consequence_position as u16);
+            self.emit(Opcode::Null, &[]);
         }
+
+        let after_alternative_position = self.instructions.len();
+        self.change_operand(jump_position, after_alternative_position as u16);
 
         Ok(())
     }
@@ -405,14 +401,18 @@ mod tests {
                     // 0000
                     make(Opcode::True, &[]),
                     // 0001
-                    make(Opcode::JumpNotTruthy, &[7]),
+                    make(Opcode::JumpNotTruthy, &[10]),
                     // 0004
                     make(Opcode::Constant, &[0]),
                     // 0007
-                    make(Opcode::Pop, &[]),
-                    // 0008
-                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Jump, &[11]),
+                    // 0010
+                    make(Opcode::Null, &[]),
                     // 0011
+                    make(Opcode::Pop, &[]),
+                    // 0012
+                    make(Opcode::Constant, &[1]),
+                    // 0015
                     make(Opcode::Pop, &[]),
                 ],
             },
