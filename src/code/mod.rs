@@ -139,7 +139,7 @@ fn format_instruction(definition: &Definition, operands: &[u16]) -> String {
 mod tests {
     use super::*;
 
-    struct TestMake {
+    struct TestCase {
         opcode: Opcode,
         operands: Vec<u16>,
         expected: Vec<u8>,
@@ -147,28 +147,28 @@ mod tests {
 
     #[test]
     fn test_make() {
-        let tests: Vec<TestMake> = vec![
-            TestMake {
+        let tests: Vec<TestCase> = vec![
+            TestCase {
                 opcode: Opcode::Constant,
                 operands: vec![0],
                 expected: vec![Opcode::Constant.into(), 0, 0],
             },
-            TestMake {
+            TestCase {
                 opcode: Opcode::Constant,
                 operands: vec![1],
                 expected: vec![Opcode::Constant.into(), 0, 1],
             },
-            TestMake {
+            TestCase {
                 opcode: Opcode::Constant,
                 operands: vec![65534],
                 expected: vec![Opcode::Constant.into(), 255, 254],
             },
-            TestMake {
+            TestCase {
                 opcode: Opcode::Constant,
                 operands: vec![65535],
                 expected: vec![Opcode::Constant.into(), 255, 255],
             },
-            TestMake {
+            TestCase {
                 opcode: Opcode::Add,
                 operands: vec![],
                 expected: vec![Opcode::Add.into()],

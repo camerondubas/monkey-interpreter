@@ -243,7 +243,7 @@ mod tests {
 
     use super::*;
 
-    struct CompilerTestCase {
+    struct TestCase {
         input: String,
         expected_constants: Vec<Object>,
         expected_instructions: Vec<Instructions>,
@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn test_integer_arithmetic() {
         let tests = vec![
-            CompilerTestCase {
+            TestCase {
                 input: "1 + 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
@@ -262,7 +262,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "1; 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
@@ -272,7 +272,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "((1 + 8 - 1) / 2) * 3".to_string(),
                 expected_constants: vec![
                     Object::Integer(1),
@@ -294,7 +294,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "-1".to_string(),
                 expected_constants: vec![Object::Integer(1)],
                 expected_instructions: vec![
@@ -311,17 +311,17 @@ mod tests {
     #[test]
     fn test_boolean_expressions() {
         let tests = vec![
-            CompilerTestCase {
+            TestCase {
                 input: "true".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![make(Opcode::True, &[]), make(Opcode::Pop, &[])],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "false".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![make(Opcode::False, &[]), make(Opcode::Pop, &[])],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "1 > 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
@@ -331,7 +331,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "1 < 2".to_string(),
                 expected_constants: vec![Object::Integer(2), Object::Integer(1)],
                 expected_instructions: vec![
@@ -341,7 +341,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "1 == 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
@@ -351,7 +351,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "1 != 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
@@ -361,7 +361,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "true == false".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
@@ -371,7 +371,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "true != false".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
@@ -381,7 +381,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "!true".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
@@ -397,8 +397,8 @@ mod tests {
 
     #[test]
     fn test_conditionals() {
-        let tests: Vec<CompilerTestCase> = vec![
-            CompilerTestCase {
+        let tests: Vec<TestCase> = vec![
+            TestCase {
                 input: "if (true) { 10 }; 3333;".to_string(),
                 expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
                 expected_instructions: vec![
@@ -416,7 +416,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "if (true) { 10 } else { 20 }; 3333".to_string(),
                 expected_constants: vec![
                     Object::Integer(10),
@@ -442,7 +442,7 @@ mod tests {
                     make(Opcode::Pop, &[]),
                 ],
             },
-            CompilerTestCase {
+            TestCase {
                 input: "if (false) { 10 } else { 20 }; 3333".to_string(),
                 expected_constants: vec![
                     Object::Integer(10),
@@ -473,7 +473,7 @@ mod tests {
         run_compiler_tests(tests)
     }
 
-    fn run_compiler_tests(tests: Vec<CompilerTestCase>) {
+    fn run_compiler_tests(tests: Vec<TestCase>) {
         for test in tests {
             println!("test: {}", test.input);
             let compiler = compile_from_source(&test.input);

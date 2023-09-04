@@ -165,14 +165,14 @@ mod tests {
     use super::*;
     use crate::test_utils::compile_from_source;
 
-    struct VMTestCase {
+    struct TestCase {
         input: String,
         expected: Object,
     }
 
-    impl VMTestCase {
+    impl TestCase {
         fn new(input: &str, expected: Object) -> Self {
-            VMTestCase {
+            TestCase {
                 input: input.to_string(),
                 expected,
             }
@@ -181,24 +181,24 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Vec<VMTestCase> = vec![
-            VMTestCase::new("1", Object::Integer(1)),
-            VMTestCase::new("2", Object::Integer(2)),
-            VMTestCase::new("1 + 2", Object::Integer(3)),
-            VMTestCase::new("1 + 2 + 6", Object::Integer(9)),
-            VMTestCase::new("1 - 2", Object::Integer(-1)),
-            VMTestCase::new("1 * 2", Object::Integer(2)),
-            VMTestCase::new("4 / 2", Object::Integer(2)),
-            VMTestCase::new("50 / 2 * 2 + 10 - 5", Object::Integer(55)),
-            VMTestCase::new("5 + 5 + 5 + 5 - 10", Object::Integer(10)),
-            VMTestCase::new("2 * 2 * 2 * 2 * 2", Object::Integer(32)),
-            VMTestCase::new("5 * 2 + 10", Object::Integer(20)),
-            VMTestCase::new("5 + 2 * 10", Object::Integer(25)),
-            VMTestCase::new("5 * (2 + 10)", Object::Integer(60)),
-            VMTestCase::new("-5", Object::Integer(-5)),
-            VMTestCase::new("-10", Object::Integer(-10)),
-            VMTestCase::new("-50 + 100 + -50", Object::Integer(0)),
-            VMTestCase::new("(5 + 10 * 2 + 15 / 3) * 2 + -10", Object::Integer(50)),
+        let tests: Vec<TestCase> = vec![
+            TestCase::new("1", Object::Integer(1)),
+            TestCase::new("2", Object::Integer(2)),
+            TestCase::new("1 + 2", Object::Integer(3)),
+            TestCase::new("1 + 2 + 6", Object::Integer(9)),
+            TestCase::new("1 - 2", Object::Integer(-1)),
+            TestCase::new("1 * 2", Object::Integer(2)),
+            TestCase::new("4 / 2", Object::Integer(2)),
+            TestCase::new("50 / 2 * 2 + 10 - 5", Object::Integer(55)),
+            TestCase::new("5 + 5 + 5 + 5 - 10", Object::Integer(10)),
+            TestCase::new("2 * 2 * 2 * 2 * 2", Object::Integer(32)),
+            TestCase::new("5 * 2 + 10", Object::Integer(20)),
+            TestCase::new("5 + 2 * 10", Object::Integer(25)),
+            TestCase::new("5 * (2 + 10)", Object::Integer(60)),
+            TestCase::new("-5", Object::Integer(-5)),
+            TestCase::new("-10", Object::Integer(-10)),
+            TestCase::new("-50 + 100 + -50", Object::Integer(0)),
+            TestCase::new("(5 + 10 * 2 + 15 / 3) * 2 + -10", Object::Integer(50)),
         ];
 
         run_vm_tests(tests);
@@ -206,31 +206,31 @@ mod tests {
 
     #[test]
     fn test_boolean_expressions() {
-        let tests: Vec<VMTestCase> = vec![
-            VMTestCase::new("true", TRUE),
-            VMTestCase::new("false", FALSE),
-            VMTestCase::new("1 < 2", TRUE),
-            VMTestCase::new("1 > 2", FALSE),
-            VMTestCase::new("1 < 1", FALSE),
-            VMTestCase::new("1 > 1", FALSE),
-            VMTestCase::new("1 == 1", TRUE),
-            VMTestCase::new("1 != 1", FALSE),
-            VMTestCase::new("1 == 2", FALSE),
-            VMTestCase::new("1 != 2", TRUE),
-            VMTestCase::new("true == true", TRUE),
-            VMTestCase::new("false == false", TRUE),
-            VMTestCase::new("true == false", FALSE),
-            VMTestCase::new("true != false", TRUE),
-            VMTestCase::new("(1 < 2) == true", TRUE),
-            VMTestCase::new("(1 < 2) == false", FALSE),
-            VMTestCase::new("(1 > 2) == true", FALSE),
-            VMTestCase::new("(1 > 2) == false", TRUE),
-            VMTestCase::new("!true", FALSE),
-            VMTestCase::new("!false", TRUE),
-            VMTestCase::new("!5", FALSE),
-            VMTestCase::new("!!true", TRUE),
-            VMTestCase::new("!!false", FALSE),
-            VMTestCase::new("!!5", TRUE),
+        let tests: Vec<TestCase> = vec![
+            TestCase::new("true", TRUE),
+            TestCase::new("false", FALSE),
+            TestCase::new("1 < 2", TRUE),
+            TestCase::new("1 > 2", FALSE),
+            TestCase::new("1 < 1", FALSE),
+            TestCase::new("1 > 1", FALSE),
+            TestCase::new("1 == 1", TRUE),
+            TestCase::new("1 != 1", FALSE),
+            TestCase::new("1 == 2", FALSE),
+            TestCase::new("1 != 2", TRUE),
+            TestCase::new("true == true", TRUE),
+            TestCase::new("false == false", TRUE),
+            TestCase::new("true == false", FALSE),
+            TestCase::new("true != false", TRUE),
+            TestCase::new("(1 < 2) == true", TRUE),
+            TestCase::new("(1 < 2) == false", FALSE),
+            TestCase::new("(1 > 2) == true", FALSE),
+            TestCase::new("(1 > 2) == false", TRUE),
+            TestCase::new("!true", FALSE),
+            TestCase::new("!false", TRUE),
+            TestCase::new("!5", FALSE),
+            TestCase::new("!!true", TRUE),
+            TestCase::new("!!false", FALSE),
+            TestCase::new("!!5", TRUE),
         ];
 
         run_vm_tests(tests);
@@ -238,20 +238,22 @@ mod tests {
 
     #[test]
     fn test_conditionals() {
-        let tests: Vec<VMTestCase> = vec![
-            VMTestCase::new("if (true) { 10 }", Object::Integer(10)),
-            VMTestCase::new("if (true) { 10 } else { 20 }", Object::Integer(10)),
-            VMTestCase::new("if (false) { 10 } else { 20 }", Object::Integer(20)),
-            VMTestCase::new("if (1) { 10 }", Object::Integer(10)),
-            VMTestCase::new("if (1 < 2) { 10 }", Object::Integer(10)),
-            VMTestCase::new("if (1 < 2) { 10 } else { 20 }", Object::Integer(10)),
-            VMTestCase::new("if (1 > 2) { 10 } else { 20 }", Object::Integer(20)),
+        let tests: Vec<TestCase> = vec![
+            TestCase::new("if (true) { 10 }", Object::Integer(10)),
+            TestCase::new("if (true) { 10 } else { 20 }", Object::Integer(10)),
+            TestCase::new("if (false) { 10 } else { 20 }", Object::Integer(20)),
+            TestCase::new("if (1) { 10 }", Object::Integer(10)),
+            TestCase::new("if (1 < 2) { 10 }", Object::Integer(10)),
+            TestCase::new("if (1 < 2) { 10 } else { 20 }", Object::Integer(10)),
+            TestCase::new("if (1 > 2) { 10 } else { 20 }", Object::Integer(20)),
+            TestCase::new("if (1 > 2) { 10 }", NULL),
+            TestCase::new("if (false) { 10 }", NULL),
         ];
 
         run_vm_tests(tests);
     }
 
-    fn run_vm_tests(tests: Vec<VMTestCase>) {
+    fn run_vm_tests(tests: Vec<TestCase>) {
         for test in tests {
             println!(" ");
             println!("test: {:?}", test.input);
