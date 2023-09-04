@@ -1,20 +1,9 @@
-mod ast;
-mod code;
-mod compiler;
-mod eval;
-mod lexer;
-mod object;
-mod parser;
 mod repl;
-mod test_utils;
-mod vm;
 
 use std::{cell::RefCell, env, fs, rc::Rc};
 
-use parser::Parser;
+use monkey_interpreter::{self, eval, object::Environment, parser::Parser};
 use repl::Repl;
-
-use crate::object::Environment;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

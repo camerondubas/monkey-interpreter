@@ -1,10 +1,8 @@
-use std::fmt::Display;
-
 use colored::Colorize;
-
-use crate::{
+use monkey_interpreter::{
     compiler::error::CompilerError, parser::error::ParserError, vm::error::VirtualMachineError,
 };
+use std::fmt::Display;
 
 pub type Result<T = ()> = std::result::Result<T, ReplError>;
 pub enum ReplError {

@@ -1,6 +1,5 @@
+use monkey_interpreter::object::Environment;
 use std::{cell::RefCell, rc::Rc, str::FromStr};
-
-use crate::object::Environment;
 
 use super::{
     error::{ReplError, Result},

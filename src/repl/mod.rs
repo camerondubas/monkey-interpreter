@@ -3,7 +3,7 @@ use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::{cell::RefCell, rc::Rc, str::FromStr};
 
-use crate::{
+use monkey_interpreter::{
     ast::Program,
     compiler::Compiler,
     eval::eval,
@@ -16,6 +16,7 @@ use crate::{
 mod commands;
 mod error;
 mod mode;
+
 use self::{commands::ReplCommand, error::ReplError};
 use self::{error::Result, mode::ReplMode};
 
