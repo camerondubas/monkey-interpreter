@@ -16,6 +16,17 @@ impl Instructions {
         self.0[offset] // TODO: Handle out of bounds / errors
     }
 
+    pub fn get_two_bytes(&self, offset: usize) -> u16 {
+        u16::from_be_bytes([self.get(offset), self.get(offset + 1)])
+    }
+
+    // TODO: clean up setting at index
+    pub fn set(&mut self, offset: usize, instructions: Instructions) {
+        for (i, byte) in instructions.0.iter().enumerate() {
+            self.0[offset + i] = *byte;
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -27,6 +38,10 @@ impl Instructions {
 
     pub fn extend(&mut self, instructions: Instructions) {
         self.0.extend(instructions.0);
+    }
+
+    pub fn truncate(&mut self, len: usize) {
+        self.0.truncate(len);
     }
 
     #[allow(dead_code)]

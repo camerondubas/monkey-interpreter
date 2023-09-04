@@ -13,8 +13,10 @@ const NOT_EQUAL: u8 = 10;
 const GREATER_THAN: u8 = 11;
 const MINUS: u8 = 12;
 const BANG: u8 = 13;
+const JUMP_NOT_TRUTHY: u8 = 14;
+const JUMP: u8 = 15;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
     Constant,
 
@@ -38,6 +40,10 @@ pub enum Opcode {
     // Prefix operators
     Minus,
     Bang,
+
+    // Jumps
+    JumpNotTruthy,
+    Jump,
 }
 
 impl Opcode {
@@ -61,6 +67,9 @@ impl Opcode {
 
             Opcode::Minus => Definition::new("Minus", vec![]),
             Opcode::Bang => Definition::new("Bang", vec![]),
+
+            Opcode::JumpNotTruthy => Definition::new("JumpNotTruthy", vec![2]),
+            Opcode::Jump => Definition::new("Jump", vec![2]),
         }
     }
 }
@@ -86,6 +95,9 @@ impl From<Opcode> for u8 {
 
             Opcode::Minus => MINUS,
             Opcode::Bang => BANG,
+
+            Opcode::JumpNotTruthy => JUMP_NOT_TRUTHY,
+            Opcode::Jump => JUMP,
         }
     }
 }
@@ -111,6 +123,9 @@ impl From<u8> for Opcode {
 
             MINUS => Opcode::Minus,
             BANG => Opcode::Bang,
+
+            JUMP_NOT_TRUTHY => Opcode::JumpNotTruthy,
+            JUMP => Opcode::Jump,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }

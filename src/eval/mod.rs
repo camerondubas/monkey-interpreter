@@ -206,9 +206,7 @@ fn eval_if_expression(
         return condition;
     }
 
-    let is_truthy = is_truthy(condition);
-
-    match (is_truthy, alternative) {
+    match (condition.is_truthy(), alternative) {
         (true, _) => eval_statement(consequence, environment),
         (false, Some(alternative)) => eval_statement(*alternative, environment),
         _ => NULL,
@@ -335,16 +333,6 @@ fn apply_function(function: Object, args: Vec<Object>) -> Object {
         }
         Object::BuiltInFunction(builtin) => builtin(args),
         _ => Object::Error(format!("not a function: {}", function.get_type())),
-    }
-}
-
-fn is_truthy(object: Object) -> bool {
-    match object {
-        TRUE => true,
-        FALSE => false,
-        Object::Integer(_) => true,
-        NULL => false,
-        _ => true,
     }
 }
 

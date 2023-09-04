@@ -56,6 +56,11 @@ impl fmt::Display for Statement {
     }
 }
 
+type Operator = Token;
+type Condition = Box<Expression>;
+type Consequence = Box<Statement>;
+type Alternative = Option<Box<Statement>>;
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Expression {
     Identifier(String),
@@ -63,10 +68,10 @@ pub enum Expression {
     StringLiteral(String),
     ArrayLiteral(Vec<Expression>),
     HashLiteral(Vec<(Expression, Expression)>),
-    PrefixExpression(Token, Box<Expression>),
-    InfixExpression(Box<Expression>, Token, Box<Expression>),
+    PrefixExpression(Operator, Box<Expression>),
+    InfixExpression(Box<Expression>, Operator, Box<Expression>),
     Boolean(bool),
-    If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
+    If(Condition, Consequence, Alternative),
     FunctionLiteral(Vec<Expression>, Box<Statement>),
     CallExpression(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),

@@ -39,11 +39,7 @@ impl VirtualMachine {
             let opcode = Opcode::from(instruction_opcode);
             match opcode {
                 Opcode::Constant => {
-                    let const_index = u16::from_be_bytes([
-                        self.instructions.get(instruction_pointer),
-                        self.instructions.get(instruction_pointer + 1),
-                    ]);
-
+                    let const_index = self.instructions.get_two_bytes(instruction_pointer);
                     instruction_pointer += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
@@ -74,6 +70,22 @@ impl VirtualMachine {
                     Object::Integer(value) => self.push(Object::Integer(-value))?,
                     obj => return Err(VirtualMachineError::UnsupportedMinus(obj)),
                 },
+                Opcode::JumpNotTruthy => {
+                    let jump_position = self.instructions.get_two_bytes(instruction_pointer);
+                    instruction_pointer += 2;
+
+                    let condition = self.pop()?;
+                    if !condition.is_truthy() {
+                        // TODO: look into why we don't have to subtract 1 here
+                        instruction_pointer = jump_position as usize;
+                    }
+                }
+                Opcode::Jump => {
+                    let jump_position = self.instructions.get_two_bytes(instruction_pointer);
+
+                    // TODO: look into why we don't have to subtract 1 here
+                    instruction_pointer = jump_position as usize;
+                }
             }
         }
         Ok(())
@@ -153,13 +165,13 @@ mod tests {
     use super::*;
     use crate::test_utils::compile_from_source;
 
-    struct VMTestCase<T> {
+    struct VMTestCase {
         input: String,
-        expected: T,
+        expected: Object,
     }
 
-    impl<T> VMTestCase<T> {
-        fn new(input: &str, expected: T) -> Self {
+    impl VMTestCase {
+        fn new(input: &str, expected: Object) -> Self {
             VMTestCase {
                 input: input.to_string(),
                 expected,
@@ -169,79 +181,90 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Vec<VMTestCase<i64>> = vec![
-            VMTestCase::new("1", 1),
-            VMTestCase::new("2", 2),
-            VMTestCase::new("1 + 2", 3),
-            VMTestCase::new("1 + 2 + 6", 9),
-            VMTestCase::new("1 - 2", -1),
-            VMTestCase::new("1 * 2", 2),
-            VMTestCase::new("4 / 2", 2),
-            VMTestCase::new("50 / 2 * 2 + 10 - 5", 55),
-            VMTestCase::new("5 + 5 + 5 + 5 - 10", 10),
-            VMTestCase::new("2 * 2 * 2 * 2 * 2", 32),
-            VMTestCase::new("5 * 2 + 10", 20),
-            VMTestCase::new("5 + 2 * 10", 25),
-            VMTestCase::new("5 * (2 + 10)", 60),
-            VMTestCase::new("-5", -5),
-            VMTestCase::new("-10", -10),
-            VMTestCase::new("-50 + 100 + -50", 0),
-            VMTestCase::new("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
+        let tests: Vec<VMTestCase> = vec![
+            VMTestCase::new("1", Object::Integer(1)),
+            VMTestCase::new("2", Object::Integer(2)),
+            VMTestCase::new("1 + 2", Object::Integer(3)),
+            VMTestCase::new("1 + 2 + 6", Object::Integer(9)),
+            VMTestCase::new("1 - 2", Object::Integer(-1)),
+            VMTestCase::new("1 * 2", Object::Integer(2)),
+            VMTestCase::new("4 / 2", Object::Integer(2)),
+            VMTestCase::new("50 / 2 * 2 + 10 - 5", Object::Integer(55)),
+            VMTestCase::new("5 + 5 + 5 + 5 - 10", Object::Integer(10)),
+            VMTestCase::new("2 * 2 * 2 * 2 * 2", Object::Integer(32)),
+            VMTestCase::new("5 * 2 + 10", Object::Integer(20)),
+            VMTestCase::new("5 + 2 * 10", Object::Integer(25)),
+            VMTestCase::new("5 * (2 + 10)", Object::Integer(60)),
+            VMTestCase::new("-5", Object::Integer(-5)),
+            VMTestCase::new("-10", Object::Integer(-10)),
+            VMTestCase::new("-50 + 100 + -50", Object::Integer(0)),
+            VMTestCase::new("(5 + 10 * 2 + 15 / 3) * 2 + -10", Object::Integer(50)),
         ];
 
-        for test in tests {
-            let compiler = compile_from_source(&test.input);
-            let mut vm = VirtualMachine::new(compiler.bytecode());
-
-            if let Err(error) = vm.run() {
-                panic!("vm error: {}", error);
-            }
-
-            let output = vm.last_popped_stack_elem();
-            assert_eq!(Object::Integer(test.expected), output);
-        }
+        run_vm_tests(tests);
     }
 
     #[test]
     fn test_boolean_expressions() {
-        let tests: Vec<VMTestCase<bool>> = vec![
-            VMTestCase::new("true", true),
-            VMTestCase::new("false", false),
-            VMTestCase::new("1 < 2", true),
-            VMTestCase::new("1 > 2", false),
-            VMTestCase::new("1 < 1", false),
-            VMTestCase::new("1 > 1", false),
-            VMTestCase::new("1 == 1", true),
-            VMTestCase::new("1 != 1", false),
-            VMTestCase::new("1 == 2", false),
-            VMTestCase::new("1 != 2", true),
-            VMTestCase::new("true == true", true),
-            VMTestCase::new("false == false", true),
-            VMTestCase::new("true == false", false),
-            VMTestCase::new("true != false", true),
-            VMTestCase::new("(1 < 2) == true", true),
-            VMTestCase::new("(1 < 2) == false", false),
-            VMTestCase::new("(1 > 2) == true", false),
-            VMTestCase::new("(1 > 2) == false", true),
-            VMTestCase::new("!true", false),
-            VMTestCase::new("!false", true),
-            VMTestCase::new("!5", false),
-            VMTestCase::new("!!true", true),
-            VMTestCase::new("!!false", false),
-            VMTestCase::new("!!5", true),
+        let tests: Vec<VMTestCase> = vec![
+            VMTestCase::new("true", TRUE),
+            VMTestCase::new("false", FALSE),
+            VMTestCase::new("1 < 2", TRUE),
+            VMTestCase::new("1 > 2", FALSE),
+            VMTestCase::new("1 < 1", FALSE),
+            VMTestCase::new("1 > 1", FALSE),
+            VMTestCase::new("1 == 1", TRUE),
+            VMTestCase::new("1 != 1", FALSE),
+            VMTestCase::new("1 == 2", FALSE),
+            VMTestCase::new("1 != 2", TRUE),
+            VMTestCase::new("true == true", TRUE),
+            VMTestCase::new("false == false", TRUE),
+            VMTestCase::new("true == false", FALSE),
+            VMTestCase::new("true != false", TRUE),
+            VMTestCase::new("(1 < 2) == true", TRUE),
+            VMTestCase::new("(1 < 2) == false", FALSE),
+            VMTestCase::new("(1 > 2) == true", FALSE),
+            VMTestCase::new("(1 > 2) == false", TRUE),
+            VMTestCase::new("!true", FALSE),
+            VMTestCase::new("!false", TRUE),
+            VMTestCase::new("!5", FALSE),
+            VMTestCase::new("!!true", TRUE),
+            VMTestCase::new("!!false", FALSE),
+            VMTestCase::new("!!5", TRUE),
         ];
 
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_conditionals() {
+        let tests: Vec<VMTestCase> = vec![
+            VMTestCase::new("if (true) { 10 }", Object::Integer(10)),
+            VMTestCase::new("if (true) { 10 } else { 20 }", Object::Integer(10)),
+            VMTestCase::new("if (false) { 10 } else { 20 }", Object::Integer(20)),
+            VMTestCase::new("if (1) { 10 }", Object::Integer(10)),
+            VMTestCase::new("if (1 < 2) { 10 }", Object::Integer(10)),
+            VMTestCase::new("if (1 < 2) { 10 } else { 20 }", Object::Integer(10)),
+            VMTestCase::new("if (1 > 2) { 10 } else { 20 }", Object::Integer(20)),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    fn run_vm_tests(tests: Vec<VMTestCase>) {
         for test in tests {
+            println!(" ");
             println!("test: {:?}", test.input);
             let compiler = compile_from_source(&test.input);
             let mut vm = VirtualMachine::new(compiler.bytecode());
 
+            println!("bytecode: {:?}", compiler.bytecode());
             if let Err(error) = vm.run() {
                 panic!("vm error: {}", error);
             }
 
             let output = vm.last_popped_stack_elem();
-            assert_eq!(Object::Boolean(test.expected), output);
+            assert_eq!(test.expected, output);
         }
     }
 }

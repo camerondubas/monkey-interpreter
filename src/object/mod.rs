@@ -39,6 +39,16 @@ impl Object {
     pub fn is_error(&self) -> bool {
         matches!(self, Object::Error(_))
     }
+
+    pub fn is_truthy(&self) -> bool {
+        match self.clone() {
+            TRUE => true,
+            FALSE => false,
+            Object::Integer(_) => true,
+            Object::Null => false,
+            _ => true,
+        }
+    }
 }
 
 impl From<&HashKey> for Object {
