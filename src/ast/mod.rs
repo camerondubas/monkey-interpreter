@@ -108,7 +108,7 @@ impl fmt::Display for Expression {
                     None => String::new(),
                 };
 
-                let full = vec![if_str, consequence_str, alternative_str].join(" ");
+                let full = format!("{} {} {}", if_str, consequence_str, alternative_str);
                 let _ = full.trim();
 
                 write!(f, "{}", full)
