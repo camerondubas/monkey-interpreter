@@ -308,13 +308,7 @@ mod test {
             Token::Eof,
         ];
 
-        let mut lexer = Lexer::new(input);
-        for token in tokens {
-            let _token = lexer.next_token();
-            println!("token: {:?}", _token);
-
-            assert_eq!(_token, token);
-        }
+        run_lexer_test(input, tokens);
     }
 
     #[test]
@@ -329,13 +323,7 @@ mod test {
             Token::Eof,
         ];
 
-        let mut lexer = Lexer::new(input);
-        for token in tokens {
-            let _token = lexer.next_token();
-            println!("token: {:?}", _token);
-
-            assert_eq!(_token, token);
-        }
+        run_lexer_test(input, tokens);
     }
 
     #[test]
@@ -350,8 +338,12 @@ mod test {
             Token::Eof,
         ];
 
+        run_lexer_test(input, tokens);
+    }
+
+    fn run_lexer_test(input: &str, expected_tokens: Vec<Token>) {
         let mut lexer = Lexer::new(input);
-        for expected_token in tokens {
+        for expected_token in expected_tokens {
             let token = lexer.next_token();
             assert_eq!(token, expected_token);
         }

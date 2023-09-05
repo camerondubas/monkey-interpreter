@@ -234,7 +234,7 @@ impl Compiler {
 mod tests {
     use crate::{
         code::{make, Opcode},
-        test_utils::compile_from_source,
+        test::compile_from_source,
     };
 
     use super::*;

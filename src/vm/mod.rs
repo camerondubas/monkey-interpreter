@@ -165,7 +165,7 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::compile_from_source;
+    use crate::test::compile_from_source;
 
     struct TestCase {
         input: String,

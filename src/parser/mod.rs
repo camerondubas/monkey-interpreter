@@ -441,7 +441,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -458,7 +458,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -478,7 +478,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -488,7 +488,7 @@ mod tests {
             ("false;", Statement::Expression(Expression::Boolean(false))),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -501,7 +501,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -533,7 +533,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -571,7 +571,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
     #[test]
     fn test_function_literal() {
@@ -620,7 +620,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -652,7 +652,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -682,7 +682,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -695,7 +695,7 @@ mod tests {
             )),
         )];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -753,7 +753,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -789,7 +789,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -885,7 +885,7 @@ mod tests {
             ),
         ];
 
-        expect_inputs_to_match(inputs);
+        run_parser_test(inputs);
     }
 
     #[test]
@@ -984,7 +984,7 @@ mod tests {
         assert_eq!(expected, parser.errors, "Found Parser Errors");
     }
 
-    fn expect_inputs_to_match(inputs: Vec<(&str, Statement)>) {
+    fn run_parser_test(inputs: Vec<(&str, Statement)>) {
         for (input, output) in inputs {
             let mut parser = Parser::from_source(input);
             let program = parser.parse_program();
