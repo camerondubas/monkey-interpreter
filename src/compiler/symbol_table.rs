@@ -9,7 +9,7 @@ enum SymbolScope {
 pub struct Symbol {
     name: String,
     scope: SymbolScope,
-    index: usize,
+    pub index: usize,
 }
 impl Symbol {
     fn new_global(name: &str, index: usize) -> Symbol {
@@ -21,6 +21,7 @@ impl Symbol {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
     num_definitions: usize,

@@ -8,7 +8,10 @@ use crate::{
     object::Object,
 };
 
-use self::error::{CompilerError, CompilerResult};
+use self::{
+    error::{CompilerError, CompilerResult},
+    symbol_table::SymbolTable,
+};
 
 #[derive(Default, Debug)]
 pub struct Bytecode {
@@ -26,6 +29,7 @@ struct EmittedInstruction {
 pub struct Compiler {
     instructions: Instructions,
     constants: Vec<Object>,
+    symbol_table: SymbolTable,
     last_instruction: Option<EmittedInstruction>,
     previous_instruction: Option<EmittedInstruction>,
 }
@@ -35,6 +39,7 @@ impl Compiler {
         Compiler {
             instructions: Instructions::new(),
             constants: Vec::new(),
+            symbol_table: SymbolTable::new(),
             last_instruction: None,
             previous_instruction: None,
         }
@@ -61,6 +66,8 @@ impl Compiler {
             }
             Statement::Let(identifier, expression) => {
                 self.compile_expression(expression)?;
+                let symbol = self.symbol_table.define(identifier.as_str());
+                self.emit(Opcode::SetGlobal, &[symbol.index as u16]);
             }
             _ => return Err(CompilerError::UnhandledStatement(statement)),
         };
@@ -94,6 +101,14 @@ impl Compiler {
             }
             Expression::If(condition, consequence, alternative) => {
                 self.compile_if(*condition, *consequence, alternative)?;
+            }
+            Expression::Identifier(identifier) => {
+                let symbol = self
+                    .symbol_table
+                    .resolve(identifier.as_str())
+                    .ok_or(CompilerError::UndefinedVariable(identifier.clone()))?;
+
+                self.emit(Opcode::GetGlobal, &[symbol.index as u16]);
             }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
@@ -495,7 +510,7 @@ mod tests {
                 expected_instructions: vec![
                     make(Opcode::Constant, &[0]),
                     make(Opcode::SetGlobal, &[0]),
-                    make(Opcode::GetGlobal, &[1]),
+                    make(Opcode::GetGlobal, &[0]),
                     make(Opcode::Pop, &[]),
                 ],
             },

@@ -10,6 +10,7 @@ use crate::{
 };
 
 const STACK_SIZE: usize = 2048;
+const GLOBAL_SIZE: usize = 65536;
 
 #[derive(Default)]
 pub struct VirtualMachine {
@@ -17,6 +18,7 @@ pub struct VirtualMachine {
     constants: Vec<Object>,
     stack: Vec<Object>,
     stack_pointer: usize,
+    globals: Vec<Object>,
 }
 
 impl VirtualMachine {
@@ -25,6 +27,7 @@ impl VirtualMachine {
             instructions: bytecode.instructions,
             constants: bytecode.constants,
             stack: vec![NULL; STACK_SIZE],
+            globals: vec![NULL; GLOBAL_SIZE],
             stack_pointer: 0,
         }
     }
@@ -88,6 +91,18 @@ impl VirtualMachine {
                     instruction_pointer = jump_position as usize;
                 }
                 Opcode::Null => self.push(NULL)?,
+                Opcode::GetGlobal => {
+                    let global_index = self.instructions.get_two_bytes(instruction_pointer);
+                    instruction_pointer += 2;
+
+                    self.push(self.globals[global_index as usize].clone())?;
+                }
+                Opcode::SetGlobal => {
+                    let global_index = self.instructions.get_two_bytes(instruction_pointer);
+                    instruction_pointer += 2;
+
+                    self.globals[global_index as usize] = self.pop()?;
+                }
             }
         }
         Ok(())
@@ -254,6 +269,20 @@ mod tests {
             TestCase::new(
                 "if ((if (false) { 10 })) { 10 } else { 20 }",
                 Object::Integer(20),
+            ),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_global_let_statements() {
+        let tests: Vec<TestCase> = vec![
+            TestCase::new("let one = 1; one", Object::Integer(1)),
+            TestCase::new("let one = 1; let two = 2; one + two", Object::Integer(3)),
+            TestCase::new(
+                "let one = 1; let two = one + one; one + two",
+                Object::Integer(3),
             ),
         ];
 

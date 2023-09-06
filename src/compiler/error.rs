@@ -11,6 +11,7 @@ pub enum CompilerError {
     UnhandledExpression(Expression),
     UnknownInfixOperator(Token),
     UnknownPrefixOperator(Token),
+    UndefinedVariable(String),
 }
 
 impl Display for CompilerError {
@@ -27,6 +28,9 @@ impl Display for CompilerError {
             }
             CompilerError::UnknownPrefixOperator(operator) => {
                 write!(f, "Unknown prefix operator: {:?} ", operator)
+            }
+            CompilerError::UndefinedVariable(identifier) => {
+                write!(f, "Undefined variable: {:?} ", identifier)
             }
         }
     }

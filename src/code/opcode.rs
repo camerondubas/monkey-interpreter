@@ -16,6 +16,8 @@ const BANG: u8 = 13;
 const JUMP_NOT_TRUTHY: u8 = 14;
 const JUMP: u8 = 15;
 const NULL: u8 = 16;
+const GET_GLOBAL: u8 = 17;
+const SET_GLOBAL: u8 = 18;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
@@ -47,6 +49,10 @@ pub enum Opcode {
     Jump,
 
     Null,
+
+    // Global variables
+    GetGlobal,
+    SetGlobal,
 }
 
 impl Opcode {
@@ -75,6 +81,9 @@ impl Opcode {
             Opcode::Jump => Definition::new("Jump", vec![2]),
 
             Opcode::Null => Definition::new("Null", vec![]),
+
+            Opcode::GetGlobal => Definition::new("GetGlobal", vec![2]),
+            Opcode::SetGlobal => Definition::new("SetGlobal", vec![2]),
         }
     }
 }
@@ -105,6 +114,9 @@ impl From<Opcode> for u8 {
             Opcode::Jump => JUMP,
 
             Opcode::Null => NULL,
+
+            Opcode::GetGlobal => GET_GLOBAL,
+            Opcode::SetGlobal => SET_GLOBAL,
         }
     }
 }
@@ -135,6 +147,9 @@ impl From<u8> for Opcode {
             JUMP => Opcode::Jump,
 
             NULL => Opcode::Null,
+
+            GET_GLOBAL => Opcode::GetGlobal,
+            SET_GLOBAL => Opcode::SetGlobal,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }
