@@ -1,4 +1,5 @@
 pub mod error;
+mod symbol_table;
 
 use crate::{
     ast::{Expression, Program, Statement},
@@ -52,17 +53,19 @@ impl Compiler {
             Statement::Expression(expression) => {
                 self.compile_expression(expression)?;
                 self.emit(Opcode::Pop, &[]);
-                Ok(())
             }
             Statement::Block(statements) => {
                 for statement in statements {
                     self.compile_statement(statement)?;
                 }
-
-                Ok(())
             }
-            _ => Err(CompilerError::UnhandledStatement(statement)),
-        }
+            Statement::Let(identifier, expression) => {
+                self.compile_expression(expression)?;
+            }
+            _ => return Err(CompilerError::UnhandledStatement(statement)),
+        };
+
+        Ok(())
     }
 
     fn compile_expression(&mut self, expression: Expression) -> CompilerResult {
@@ -465,6 +468,46 @@ mod tests {
                     // 0014
                     make(Opcode::Constant, &[2]),
                     // 0017
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+        ];
+
+        run_compiler_tests(tests)
+    }
+
+    #[test]
+    fn test_global_let_statements() {
+        let tests = vec![
+            TestCase {
+                input: "let one = 1; let two = 2;".to_string(),
+                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::SetGlobal, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::SetGlobal, &[1]),
+                ],
+            },
+            TestCase {
+                input: "let one = 1; one;".to_string(),
+                expected_constants: vec![Object::Integer(1)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::SetGlobal, &[0]),
+                    make(Opcode::GetGlobal, &[1]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+            TestCase {
+                input: "let one = 1; let two = one; two;".to_string(),
+                expected_constants: vec![Object::Integer(1)],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::SetGlobal, &[0]),
+                    make(Opcode::GetGlobal, &[0]),
+                    make(Opcode::SetGlobal, &[1]),
+                    make(Opcode::GetGlobal, &[1]),
                     make(Opcode::Pop, &[]),
                 ],
             },
