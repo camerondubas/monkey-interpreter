@@ -18,7 +18,7 @@ impl Display for ReplError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ReplError::Parser(parser_error) => {
-                writeln!(f, "Parser error:")?;
+                writeln!(f, "{}", "Parser error:".to_string().red())?;
                 for parser_error in parser_error {
                     writeln!(f, "  - {}", parser_error)?;
                 }
@@ -26,20 +26,24 @@ impl Display for ReplError {
                 Ok(())
             }
             ReplError::Compiler(compiler_error) => {
-                writeln!(f, "Compiler error:")?;
+                writeln!(f, "{}", "Compiler error:".to_string().red())?;
                 writeln!(f, "  - {}", compiler_error)
             }
             ReplError::VM(vm_error) => {
-                writeln!(f, "VM error:")?;
+                writeln!(f, "{}", "Virtual Machine error:".to_string().red())?;
                 writeln!(f, "  - {}", vm_error)
             }
             ReplError::UnknownMode(mode) => {
                 writeln!(f, "Unknown mode \"{}\".", mode.red().bold())
             }
             ReplError::UnknownCommand => {
-                writeln!(f, "Unknown command. Type \":help\" for help.")
+                writeln!(
+                    f,
+                    "Unknown command. Type {} to list all commands.",
+                    ":help".yellow().italic()
+                )
             }
-            ReplError::Quit => writeln!(f, "Bye! 👋"),
+            ReplError::Quit => writeln!(f, "{}", "Bye! 👋".to_string().blue()),
         }
     }
 }

@@ -49,7 +49,8 @@ impl Repl {
 
                     if let Err(error) = self.handle_input(line) {
                         let should_quit: bool = matches!(error, ReplError::Quit);
-                        self.print_error(error);
+                        println!("{}", error);
+
                         if should_quit {
                             break;
                         }
@@ -190,10 +191,6 @@ impl Repl {
         );
         println!("  - {}: Exit REPL", "`:exit`".yellow().italic());
         println!();
-    }
-
-    fn print_error(&mut self, error: ReplError) {
-        println!("{}", error.to_string().red());
     }
 }
 
