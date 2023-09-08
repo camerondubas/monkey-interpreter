@@ -1,5 +1,9 @@
 pub mod error;
-mod symbol_table;
+pub mod symbol_table;
+
+use std::{cell::RefCell, rc::Rc};
+
+pub type Constants = Vec<Object>;
 
 use crate::{
     ast::{Expression, Program, Statement},
@@ -16,7 +20,7 @@ use self::{
 #[derive(Default, Debug)]
 pub struct Bytecode {
     pub instructions: Instructions,
-    pub constants: Vec<Object>,
+    pub constants: Rc<RefCell<Constants>>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,20 +32,25 @@ struct EmittedInstruction {
 #[derive(Default)]
 pub struct Compiler {
     instructions: Instructions,
-    constants: Vec<Object>,
-    symbol_table: SymbolTable,
+    constants: Rc<RefCell<Constants>>,
+    symbol_table: Rc<RefCell<SymbolTable>>,
     last_instruction: Option<EmittedInstruction>,
     previous_instruction: Option<EmittedInstruction>,
 }
 
 impl Compiler {
     pub fn new() -> Self {
+        Compiler::default()
+    }
+
+    pub fn new_with_state(
+        symbol_table: Rc<RefCell<SymbolTable>>,
+        constants: Rc<RefCell<Vec<Object>>>,
+    ) -> Self {
         Compiler {
-            instructions: Instructions::new(),
-            constants: Vec::new(),
-            symbol_table: SymbolTable::new(),
-            last_instruction: None,
-            previous_instruction: None,
+            constants,
+            symbol_table,
+            ..Default::default()
         }
     }
 
@@ -66,7 +75,7 @@ impl Compiler {
             }
             Statement::Let(identifier, expression) => {
                 self.compile_expression(expression)?;
-                let symbol = self.symbol_table.define(identifier.as_str());
+                let symbol = self.symbol_table.borrow_mut().define(identifier.as_str());
                 self.emit(Opcode::SetGlobal, &[symbol.index as u16]);
             }
             _ => return Err(CompilerError::UnhandledStatement(statement)),
@@ -105,6 +114,7 @@ impl Compiler {
             Expression::Identifier(identifier) => {
                 let symbol = self
                     .symbol_table
+                    .borrow_mut()
                     .resolve(identifier.as_str())
                     .ok_or(CompilerError::UndefinedVariable(identifier.clone()))?;
 
@@ -232,13 +242,13 @@ impl Compiler {
     pub fn bytecode(&self) -> Bytecode {
         Bytecode {
             instructions: self.instructions.clone(),
-            constants: self.constants.clone(),
+            constants: Rc::clone(&self.constants),
         }
     }
 
     fn add_constant(&mut self, integer: Object) -> u16 {
-        self.constants.push(integer);
-        (self.constants.len() - 1) as u16
+        self.constants.borrow_mut().push(integer);
+        (self.constants.borrow_mut().len() - 1) as u16
     }
 
     fn add_instruction(&mut self, instruction: Instructions) -> usize {
@@ -543,7 +553,11 @@ mod tests {
                 bytecode.instructions.print(),
                 "instructions"
             );
-            assert_eq!(test.expected_constants, bytecode.constants, "constants");
+            assert_eq!(
+                test.expected_constants,
+                *bytecode.constants.borrow(),
+                "constants"
+            );
         }
     }
 }

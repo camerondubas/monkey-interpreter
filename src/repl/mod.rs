@@ -5,12 +5,12 @@ use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use monkey_interpreter::{
     ast::Program,
-    compiler::Compiler,
+    compiler::{symbol_table::SymbolTable, Compiler, Constants},
     eval::eval,
     lexer::{Lexer, Token},
     object::{Environment, Object},
     parser::Parser,
-    vm::VirtualMachine,
+    vm::{create_globals_store, Globals, VirtualMachine},
 };
 
 mod commands;
@@ -25,19 +25,25 @@ const PROMPT: &str = ">> ";
 pub struct Repl {
     mode: ReplMode,
     environment: Rc<RefCell<Environment>>,
+    constants: Rc<RefCell<Constants>>,
+    globals: Rc<RefCell<Globals>>,
+    symbol_table: Rc<RefCell<SymbolTable>>,
 }
 
 impl Repl {
     pub fn new() -> Self {
         Repl {
-            mode: ReplMode::Eval,
+            mode: ReplMode::Compiler,
             environment: Rc::new(RefCell::new(Environment::new())),
+            constants: Rc::new(RefCell::new(vec![])),
+            globals: Rc::new(RefCell::new(create_globals_store())),
+            symbol_table: Rc::new(RefCell::new(SymbolTable::new())),
         }
     }
 
     pub fn start(&mut self) -> rustyline::Result<()> {
         let mut rl = DefaultEditor::new()?;
-        let _ = rl.load_history("history.txt");
+        rl.load_history("history.txt")?;
 
         self.print_welcome();
 
@@ -91,10 +97,13 @@ impl Repl {
 
     fn compile(&mut self, line: String) -> Result {
         let program = self.internal_parse(line)?;
-        let mut compiler = Compiler::new();
+        let mut compiler =
+            Compiler::new_with_state(Rc::clone(&self.symbol_table), Rc::clone(&self.constants));
 
         compiler.compile(program)?;
-        let mut vm = VirtualMachine::new(compiler.bytecode());
+
+        let bytecode = compiler.bytecode();
+        let mut vm = VirtualMachine::new_with_globals_store(bytecode, Rc::clone(&self.globals));
 
         vm.run()?;
 

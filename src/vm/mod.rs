@@ -1,8 +1,10 @@
 pub mod error;
+use std::{cell::RefCell, rc::Rc};
+
 use self::error::{Result, VirtualMachineError};
 use crate::{
     code::{Instructions, Opcode},
-    compiler::Bytecode,
+    compiler::{Bytecode, Constants},
     object::{
         constants::{FALSE, NULL, TRUE},
         Object,
@@ -10,24 +12,39 @@ use crate::{
 };
 
 const STACK_SIZE: usize = 2048;
-const GLOBAL_SIZE: usize = 65536;
+pub const GLOBAL_SIZE: usize = 65536;
+
+pub type Globals = Vec<Object>;
+pub fn create_globals_store() -> Globals {
+    vec![NULL; GLOBAL_SIZE]
+}
 
 #[derive(Default)]
 pub struct VirtualMachine {
     instructions: Instructions,
-    constants: Vec<Object>,
+    constants: Constants,
     stack: Vec<Object>,
     stack_pointer: usize,
-    globals: Vec<Object>,
+    globals: Rc<RefCell<Globals>>,
 }
 
 impl VirtualMachine {
     pub fn new(bytecode: Bytecode) -> Self {
         VirtualMachine {
             instructions: bytecode.instructions,
-            constants: bytecode.constants,
+            constants: bytecode.constants.borrow().clone(),
             stack: vec![NULL; STACK_SIZE],
-            globals: vec![NULL; GLOBAL_SIZE],
+            globals: Rc::new(RefCell::new(create_globals_store())),
+            stack_pointer: 0,
+        }
+    }
+
+    pub fn new_with_globals_store(bytecode: Bytecode, globals: Rc<RefCell<Vec<Object>>>) -> Self {
+        VirtualMachine {
+            instructions: bytecode.instructions,
+            constants: bytecode.constants.borrow().clone(),
+            stack: vec![NULL; STACK_SIZE],
+            globals,
             stack_pointer: 0,
         }
     }
@@ -95,13 +112,20 @@ impl VirtualMachine {
                     let global_index = self.instructions.get_two_bytes(instruction_pointer);
                     instruction_pointer += 2;
 
-                    self.push(self.globals[global_index as usize].clone())?;
+                    let globals_ref = self.globals.borrow();
+                    let global_obj = globals_ref[global_index as usize].clone();
+                    drop(globals_ref);
+
+                    self.push(global_obj)?;
                 }
                 Opcode::SetGlobal => {
                     let global_index = self.instructions.get_two_bytes(instruction_pointer);
+                    let global_obj = self.pop()?;
                     instruction_pointer += 2;
 
-                    self.globals[global_index as usize] = self.pop()?;
+                    let mut globals_ref = self.globals.borrow_mut();
+
+                    globals_ref[global_index as usize] = global_obj;
                 }
             }
         }

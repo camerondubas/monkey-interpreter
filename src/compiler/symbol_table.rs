@@ -21,7 +21,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
     num_definitions: usize,
@@ -43,8 +43,8 @@ impl SymbolTable {
         symbol
     }
 
-    pub fn resolve(&self, name: &str) -> Option<&Symbol> {
-        self.store.get(name)
+    pub fn resolve(&self, name: &str) -> Option<Symbol> {
+        self.store.get(name).cloned()
     }
 }
 
@@ -75,7 +75,7 @@ mod tests {
 
         for expected_symbol in expected {
             let symbol = global.resolve(&expected_symbol.name);
-            assert_eq!(symbol, Some(&expected_symbol));
+            assert_eq!(symbol, Some(expected_symbol));
         }
     }
 }
