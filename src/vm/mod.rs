@@ -193,6 +193,13 @@ impl VirtualMachine {
 
                 _ => return Err(VirtualMachineError::UnknownBooleanOperator(opcode)),
             },
+            (Object::String(left), Object::String(right)) => match opcode {
+                Opcode::Add => self.push(Object::String(format!("{}{}", left, right)))?,
+
+                // Opcode::Equal => self.push(Object::from(left == right))?,
+                // Opcode::NotEqual => self.push(Object::from(left != right))?,
+                _ => return Err(VirtualMachineError::UnknownStringOperator(opcode)),
+            },
 
             _ => return Err(VirtualMachineError::UnsupportedAddition(left, right)),
         };
@@ -307,6 +314,20 @@ mod tests {
             TestCase::new(
                 "let one = 1; let two = one + one; one + two",
                 Object::Integer(3),
+            ),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_string_expressions() {
+        let tests: Vec<TestCase> = vec![
+            TestCase::new(r#""monkey""#, Object::String("monkey".to_string())),
+            TestCase::new(r#""mon" + "key""#, Object::String("monkey".to_string())),
+            TestCase::new(
+                r#""mon" + "key" + "banana""#,
+                Object::String("monkeybanana".to_string()),
             ),
         ];
 

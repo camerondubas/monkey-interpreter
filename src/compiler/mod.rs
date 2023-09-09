@@ -120,6 +120,10 @@ impl Compiler {
 
                 self.emit(Opcode::GetGlobal, &[symbol.index as u16]);
             }
+            Expression::StringLiteral(value) => {
+                let id = self.add_constant(Object::String(value));
+                self.emit(Opcode::Constant, &[id]);
+            }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
 
@@ -533,6 +537,32 @@ mod tests {
                     make(Opcode::GetGlobal, &[0]),
                     make(Opcode::SetGlobal, &[1]),
                     make(Opcode::GetGlobal, &[1]),
+                    make(Opcode::Pop, &[]),
+                ],
+            },
+        ];
+
+        run_compiler_tests(tests)
+    }
+
+    #[test]
+    fn test_string_expressions() {
+        let tests = vec![
+            TestCase {
+                input: r#""monkey""#.to_string(),
+                expected_constants: vec![Object::String("monkey".to_string())],
+                expected_instructions: vec![make(Opcode::Constant, &[0]), make(Opcode::Pop, &[])],
+            },
+            TestCase {
+                input: r#""mon" + "key""#.to_string(),
+                expected_constants: vec![
+                    Object::String("mon".to_string()),
+                    Object::String("key".to_string()),
+                ],
+                expected_instructions: vec![
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
                     make(Opcode::Pop, &[]),
                 ],
             },
