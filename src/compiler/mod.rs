@@ -224,13 +224,13 @@ impl Compiler {
         // it may be worth looking into a more robust solution, leaning into rust
         // types / structs / enums
         let opcode = Opcode::from(self.instructions.get(position));
-        let new_instruction = make(opcode, &[operand]);
+        let new_instruction = make!(opcode, &[operand]);
 
         self.replace_instruction(position, new_instruction);
     }
 
     fn emit(&mut self, opcode: Opcode, operands: &[u16]) -> usize {
-        let instruction = make(opcode, operands);
+        let instruction = make!(opcode, operands);
         let position = self.add_instruction(instruction);
 
         self.set_last_instruction(opcode, position);
@@ -284,20 +284,20 @@ mod tests {
                 input: "1 + 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::Add, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Add),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "1; 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Pop, &[]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Pop),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
@@ -310,25 +310,25 @@ mod tests {
                     Object::Integer(3),
                 ],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::Add, &[]),
-                    make(Opcode::Constant, &[2]),
-                    make(Opcode::Sub, &[]),
-                    make(Opcode::Constant, &[3]),
-                    make(Opcode::Div, &[]),
-                    make(Opcode::Constant, &[4]),
-                    make(Opcode::Mul, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Add),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Sub),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Div),
+                    make!(Opcode::Constant, 4),
+                    make!(Opcode::Mul),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "-1".to_string(),
                 expected_constants: vec![Object::Integer(1)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Minus, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Minus),
+                    make!(Opcode::Pop),
                 ],
             },
         ];
@@ -342,80 +342,80 @@ mod tests {
             TestCase {
                 input: "true".to_string(),
                 expected_constants: vec![],
-                expected_instructions: vec![make(Opcode::True, &[]), make(Opcode::Pop, &[])],
+                expected_instructions: vec![make!(Opcode::True), make!(Opcode::Pop)],
             },
             TestCase {
                 input: "false".to_string(),
                 expected_constants: vec![],
-                expected_instructions: vec![make(Opcode::False, &[]), make(Opcode::Pop, &[])],
+                expected_instructions: vec![make!(Opcode::False), make!(Opcode::Pop)],
             },
             TestCase {
                 input: "1 > 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::GreaterThan, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::GreaterThan),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "1 < 2".to_string(),
                 expected_constants: vec![Object::Integer(2), Object::Integer(1)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::GreaterThan, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::GreaterThan),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "1 == 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::Equal, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Equal),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "1 != 2".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::NotEqual, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::NotEqual),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "true == false".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
-                    make(Opcode::True, &[]),
-                    make(Opcode::False, &[]),
-                    make(Opcode::Equal, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::True),
+                    make!(Opcode::False),
+                    make!(Opcode::Equal),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "true != false".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
-                    make(Opcode::True, &[]),
-                    make(Opcode::False, &[]),
-                    make(Opcode::NotEqual, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::True),
+                    make!(Opcode::False),
+                    make!(Opcode::NotEqual),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "!true".to_string(),
                 expected_constants: vec![],
                 expected_instructions: vec![
-                    make(Opcode::True, &[]),
-                    make(Opcode::Bang, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::True),
+                    make!(Opcode::Bang),
+                    make!(Opcode::Pop),
                 ],
             },
         ];
@@ -431,21 +431,21 @@ mod tests {
                 expected_constants: vec![Object::Integer(10), Object::Integer(3333)],
                 expected_instructions: vec![
                     // 0000
-                    make(Opcode::True, &[]),
+                    make!(Opcode::True),
                     // 0001
-                    make(Opcode::JumpNotTruthy, &[10]),
+                    make!(Opcode::JumpNotTruthy, 10),
                     // 0004
-                    make(Opcode::Constant, &[0]),
+                    make!(Opcode::Constant, 0),
                     // 0007
-                    make(Opcode::Jump, &[11]),
+                    make!(Opcode::Jump, 11),
                     // 0010
-                    make(Opcode::Null, &[]),
+                    make!(Opcode::Null),
                     // 0011
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                     // 0012
-                    make(Opcode::Constant, &[1]),
+                    make!(Opcode::Constant, 1),
                     // 0015
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
@@ -457,21 +457,21 @@ mod tests {
                 ],
                 expected_instructions: vec![
                     // 0000
-                    make(Opcode::True, &[]),
+                    make!(Opcode::True),
                     // 0001
-                    make(Opcode::JumpNotTruthy, &[10]),
+                    make!(Opcode::JumpNotTruthy, 10),
                     // 0004
-                    make(Opcode::Constant, &[0]),
+                    make!(Opcode::Constant, 0),
                     // 0007
-                    make(Opcode::Jump, &[13]),
+                    make!(Opcode::Jump, 13),
                     // 0010
-                    make(Opcode::Constant, &[1]),
+                    make!(Opcode::Constant, 1),
                     // 0013
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                     // 0014
-                    make(Opcode::Constant, &[2]),
+                    make!(Opcode::Constant, 2),
                     // 0017
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
@@ -483,21 +483,21 @@ mod tests {
                 ],
                 expected_instructions: vec![
                     // 0000
-                    make(Opcode::False, &[]),
+                    make!(Opcode::False),
                     // 0001
-                    make(Opcode::JumpNotTruthy, &[10]),
+                    make!(Opcode::JumpNotTruthy, 10),
                     // 0004
-                    make(Opcode::Constant, &[0]),
+                    make!(Opcode::Constant, 0),
                     // 0007
-                    make(Opcode::Jump, &[13]),
+                    make!(Opcode::Jump, 13),
                     // 0010
-                    make(Opcode::Constant, &[1]),
+                    make!(Opcode::Constant, 1),
                     // 0013
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                     // 0014
-                    make(Opcode::Constant, &[2]),
+                    make!(Opcode::Constant, 2),
                     // 0017
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Pop),
                 ],
             },
         ];
@@ -512,32 +512,32 @@ mod tests {
                 input: "let one = 1; let two = 2;".to_string(),
                 expected_constants: vec![Object::Integer(1), Object::Integer(2)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::SetGlobal, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::SetGlobal, &[1]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::SetGlobal, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::SetGlobal, 1),
                 ],
             },
             TestCase {
                 input: "let one = 1; one;".to_string(),
                 expected_constants: vec![Object::Integer(1)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::SetGlobal, &[0]),
-                    make(Opcode::GetGlobal, &[0]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::SetGlobal, 0),
+                    make!(Opcode::GetGlobal, 0),
+                    make!(Opcode::Pop),
                 ],
             },
             TestCase {
                 input: "let one = 1; let two = one; two;".to_string(),
                 expected_constants: vec![Object::Integer(1)],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::SetGlobal, &[0]),
-                    make(Opcode::GetGlobal, &[0]),
-                    make(Opcode::SetGlobal, &[1]),
-                    make(Opcode::GetGlobal, &[1]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::SetGlobal, 0),
+                    make!(Opcode::GetGlobal, 0),
+                    make!(Opcode::SetGlobal, 1),
+                    make!(Opcode::GetGlobal, 1),
+                    make!(Opcode::Pop),
                 ],
             },
         ];
@@ -551,7 +551,7 @@ mod tests {
             TestCase {
                 input: r#""monkey""#.to_string(),
                 expected_constants: vec![Object::String("monkey".to_string())],
-                expected_instructions: vec![make(Opcode::Constant, &[0]), make(Opcode::Pop, &[])],
+                expected_instructions: vec![make!(Opcode::Constant, 0), make!(Opcode::Pop)],
             },
             TestCase {
                 input: r#""mon" + "key""#.to_string(),
@@ -560,10 +560,10 @@ mod tests {
                     Object::String("key".to_string()),
                 ],
                 expected_instructions: vec![
-                    make(Opcode::Constant, &[0]),
-                    make(Opcode::Constant, &[1]),
-                    make(Opcode::Add, &[]),
-                    make(Opcode::Pop, &[]),
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Add),
+                    make!(Opcode::Pop),
                 ],
             },
         ];

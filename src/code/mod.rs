@@ -2,7 +2,10 @@ use std::fmt::Binary;
 
 use self::opcode::Definition;
 pub use self::opcode::Opcode;
+pub mod make;
 mod opcode;
+
+pub(crate) use make::make;
 
 #[derive(Default, Debug, Clone)]
 pub struct Instructions(pub Vec<u8>);
@@ -94,29 +97,6 @@ impl From<Vec<Instructions>> for Instructions {
     }
 }
 
-pub fn make(op: Opcode, operands: &[u16]) -> Instructions {
-    let definition = op.definition();
-    let mut instruction = Vec::with_capacity(definition.size());
-
-    instruction.push(op.into());
-
-    for (idx, operand) in operands.iter().enumerate() {
-        match definition.operand_widths.get(idx) {
-            Some(operand_width) => match operand_width {
-                2 => {
-                    let bytes = operand.to_be_bytes();
-                    instruction.push(bytes[0]);
-                    instruction.push(bytes[1]);
-                }
-                _ => panic!("Unhandled operand width"),
-            },
-            None => panic!("Operand not found"),
-        }
-    }
-
-    Instructions(instruction)
-}
-
 fn format_instruction(definition: &Definition, operands: &[u16]) -> String {
     let operand_count = definition.operand_widths.len();
 
@@ -176,7 +156,8 @@ mod tests {
         ];
 
         for test in tests {
-            let instruction = make(test.opcode, &test.operands);
+            let opcode = test.opcode;
+            let instruction = make!(opcode, &test.operands);
             assert_eq!(instruction, test.expected);
         }
     }
@@ -184,13 +165,13 @@ mod tests {
     #[test]
     fn test_instructions_string() {
         let instructions = vec![
-            make(Opcode::Add, &[]),
-            make(Opcode::Constant, &[1]),
-            make(Opcode::Constant, &[2]),
-            make(Opcode::Constant, &[65535]),
-            make(Opcode::Sub, &[]),
-            make(Opcode::Mul, &[]),
-            make(Opcode::Div, &[]),
+            make!(Opcode::Add),
+            make!(Opcode::Constant, 1),
+            make!(Opcode::Constant, 2),
+            make!(Opcode::Constant, 65535),
+            make!(Opcode::Sub),
+            make!(Opcode::Mul),
+            make!(Opcode::Div),
         ];
 
         let expected = "0000 Add
@@ -210,7 +191,7 @@ mod tests {
         let tests: Vec<(Opcode, Vec<u16>, usize)> = vec![(Opcode::Constant, vec![65535], 2)];
 
         for (opcode, operands, expected_bytes_read) in tests {
-            let instruction = make(opcode, &operands);
+            let instruction = make!(opcode, &operands);
             let definition = opcode.definition();
 
             let (operands_read, n) = definition.read_operands(&instruction.0[1..]);
