@@ -11,6 +11,8 @@
 - feat: wasm
 - feat: web interface
 - refactor(repl): move parsing to single method
+- feat(compiler): optimization levels
+- feat(compiler): compiler literal expressions as an optimization
 + feat: nested strings
 + builtin: spit into individual files
 + builtin: object iteration/keys
@@ -31,3 +33,4 @@
 - repl: inline evaluation
 - repl: tab completion
 - lsp/syntax highlighting/editor support
+- feat(compiler): support >16bit numbers in vm (arrays, constants, etc.)
