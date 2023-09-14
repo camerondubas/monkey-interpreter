@@ -5,19 +5,17 @@ use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use monkey_interpreter::{
     ast::Program,
-    compiler::{symbol_table::SymbolTable, Compiler, Constants},
-    eval::eval,
-    lexer::{Lexer, Token},
+    compiler::{symbol_table::SymbolTable, Constants},
     object::{Environment, Object},
     parser::Parser,
-    vm::{create_globals_store, Globals, VirtualMachine},
+    vm::{create_globals_store, Globals},
 };
 
 mod commands;
 mod error;
 mod mode;
 
-use self::{commands::ReplCommand, error::ReplError};
+use self::{commands::ReplCommand, error::ReplError, mode::Execute};
 use self::{error::Result, mode::ReplMode};
 
 const PROMPT: &str = ">> ";
@@ -95,69 +93,12 @@ impl Repl {
         Ok(mode)
     }
 
-    fn compile(&mut self, line: String) -> Result {
-        let program = self.internal_parse(line)?;
-        let mut compiler =
-            Compiler::new_with_state(Rc::clone(&self.symbol_table), Rc::clone(&self.constants));
-
-        compiler.compile(program)?;
-
-        let bytecode = compiler.bytecode();
-        println!("{}", bytecode);
-
-        Ok(())
+    fn execute(&mut self, line: String) -> Result {
+        let mode = self.mode.clone();
+        mode.execute(self, line)
     }
 
-    fn run_vm(&mut self, line: String) -> Result {
-        let program = self.internal_parse(line)?;
-        let mut compiler =
-            Compiler::new_with_state(Rc::clone(&self.symbol_table), Rc::clone(&self.constants));
-
-        compiler.compile(program)?;
-
-        let bytecode = compiler.bytecode();
-        let mut vm = VirtualMachine::new_with_globals_store(bytecode, Rc::clone(&self.globals));
-
-        vm.run()?;
-
-        self.print(vm.last_popped_stack_elem());
-        Ok(())
-    }
-
-    fn eval(&mut self, line: String) -> Result {
-        let program = self.internal_parse(line)?;
-        let evaluated = eval(program, Rc::clone(&self.environment));
-        self.print(evaluated);
-        Ok(())
-    }
-
-    fn parse(&mut self, line: String) -> Result {
-        let program = self.internal_parse(line)?;
-        format!("{:?}", program);
-        Ok(())
-    }
-
-    fn ast(&mut self, line: String) -> Result {
-        let program = self.internal_parse(line)?;
-        for statement in program.statements {
-            println!("{:?}", statement);
-        }
-
-        Ok(())
-    }
-
-    fn lex(&mut self, line: String) -> Result {
-        let mut lexer = Lexer::new(line.as_str());
-        loop {
-            let token = lexer.next_token();
-            println!("{:?}: {}", token, token.to_string().blue());
-            if token == Token::Eof {
-                return Ok(());
-            }
-        }
-    }
-
-    fn internal_parse(&mut self, line: String) -> Result<Program> {
+    fn parse(&mut self, line: String) -> Result<Program> {
         let mut parser = Parser::from_source(line.as_str());
         let program = parser.parse_program();
 
@@ -168,7 +109,7 @@ impl Repl {
         }
     }
 
-    fn print(&self, obj: Object) {
+    fn print_obj(&self, obj: Object) {
         let formatted = match obj {
             Object::Integer(_) | Object::Boolean(_) => obj.to_string().yellow(),
             Object::String(_) => obj.to_string().green(),

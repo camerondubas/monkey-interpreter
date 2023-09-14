@@ -3,7 +3,6 @@ use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use super::{
     error::{ReplError, Result},
-    mode::ReplMode,
     Repl,
 };
 
@@ -59,15 +58,7 @@ impl ReplCommand {
                 return Err(ReplError::Quit);
             }
             ReplCommand::Execute(line) => {
-                let line = line.clone();
-                return match repl.mode {
-                    ReplMode::Lexer => repl.lex(line),
-                    ReplMode::Parser => repl.parse(line),
-                    ReplMode::Ast => repl.ast(line),
-                    ReplMode::Eval => repl.eval(line),
-                    ReplMode::Compiler => repl.compile(line),
-                    ReplMode::VM => repl.run_vm(line),
-                };
+                return repl.execute(line.clone());
             }
         };
 
