@@ -1,9 +1,11 @@
 pub mod error;
 pub mod symbol_table;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 pub type Constants = Vec<Object>;
+
+use colored::Colorize;
 
 use crate::{
     ast::{Expression, Program, Statement},
@@ -21,6 +23,30 @@ use self::{
 pub struct Bytecode {
     pub instructions: Instructions,
     pub constants: Rc<RefCell<Constants>>,
+}
+
+impl Display for Bytecode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Constants:")?;
+        writeln!(f, "-----------")?;
+
+        for (i, constant) in self.constants.borrow().iter().enumerate() {
+            writeln!(
+                f,
+                "{} -> {}",
+                i.to_string().blue(),
+                constant.to_string().yellow()
+            )?;
+        }
+
+        writeln!(f)?;
+
+        writeln!(f, "Instructions:")?;
+        writeln!(f, "-----------")?;
+        writeln!(f, "{}", self.instructions)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]

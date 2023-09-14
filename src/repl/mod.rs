@@ -103,11 +103,8 @@ impl Repl {
         compiler.compile(program)?;
 
         let bytecode = compiler.bytecode();
-        let mut vm = VirtualMachine::new_with_globals_store(bytecode, Rc::clone(&self.globals));
+        println!("{}", bytecode);
 
-        vm.run()?;
-
-        self.print(vm.last_popped_stack_elem());
         Ok(())
     }
 

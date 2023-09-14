@@ -1,4 +1,5 @@
-use std::fmt::Binary;
+use colored::Colorize;
+use std::fmt::{Binary, Display};
 
 use self::opcode::Definition;
 pub use self::opcode::Opcode;
@@ -71,6 +72,30 @@ impl Instructions {
     }
 }
 
+impl Display for Instructions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut offset = 0;
+
+        while let Some(instruction) = self.0.get(offset) {
+            let opcode = Opcode::from(*instruction);
+            let definition = opcode.definition();
+
+            let (operands, read_count) = definition.read_operands(&self.0[offset + 1..]);
+
+            writeln!(
+                f,
+                "{} {}",
+                format!("{:04}", offset).blue(),
+                format_instruction(&definition, &operands)
+            )?;
+
+            offset += 1 + read_count;
+        }
+
+        Ok(())
+    }
+}
+
 impl Binary for Instructions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for byte in self.0.iter() {
@@ -110,7 +135,7 @@ fn format_instruction(definition: &Definition, operands: &[u16]) -> String {
 
     match operand_count {
         0 => definition.name.to_string(),
-        1 => format!("{} {}", definition.name, operands[0]),
+        1 => format!("{} {}", definition.name, operands[0].to_string().blue()),
         _ => format!("ERROR: unhandled operand_count for {}", definition.name),
     }
 }
