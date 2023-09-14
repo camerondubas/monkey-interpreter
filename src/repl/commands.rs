@@ -66,6 +66,7 @@ impl ReplCommand {
                     ReplMode::Ast => repl.ast(line),
                     ReplMode::Eval => repl.eval(line),
                     ReplMode::Compiler => repl.compile(line),
+                    ReplMode::VM => repl.run_vm(line),
                 };
             }
         };

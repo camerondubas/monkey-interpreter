@@ -9,6 +9,7 @@ pub enum ReplMode {
     Ast,
     Eval,
     Compiler,
+    VM,
 }
 
 impl Display for ReplMode {
@@ -19,6 +20,7 @@ impl Display for ReplMode {
             ReplMode::Ast => "ast",
             ReplMode::Eval => "eval",
             ReplMode::Compiler => "compiler",
+            ReplMode::VM => "vm",
         };
 
         write!(f, "{}", mode_str)
@@ -35,6 +37,7 @@ impl FromStr for ReplMode {
             "ast" => ReplMode::Ast,
             "eval" => ReplMode::Eval,
             "compiler" => ReplMode::Compiler,
+            "vm" => ReplMode::VM,
             _ => return Err(ReplError::UnknownMode(mode_str.to_string())),
         };
 

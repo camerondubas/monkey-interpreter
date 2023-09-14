@@ -108,6 +108,22 @@ impl Repl {
         Ok(())
     }
 
+    fn run_vm(&mut self, line: String) -> Result {
+        let program = self.internal_parse(line)?;
+        let mut compiler =
+            Compiler::new_with_state(Rc::clone(&self.symbol_table), Rc::clone(&self.constants));
+
+        compiler.compile(program)?;
+
+        let bytecode = compiler.bytecode();
+        let mut vm = VirtualMachine::new_with_globals_store(bytecode, Rc::clone(&self.globals));
+
+        vm.run()?;
+
+        self.print(vm.last_popped_stack_elem());
+        Ok(())
+    }
+
     fn eval(&mut self, line: String) -> Result {
         let program = self.internal_parse(line)?;
         let evaluated = eval(program, Rc::clone(&self.environment));
