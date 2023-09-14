@@ -127,6 +127,19 @@ impl VirtualMachine {
 
                     globals_ref[global_index as usize] = global_obj;
                 }
+                Opcode::Array => {
+                    let num_elements = self.instructions.get_two_bytes(instruction_pointer);
+                    instruction_pointer += 2;
+
+                    let array = self.build_array(
+                        self.stack_pointer - num_elements as usize,
+                        self.stack_pointer,
+                    )?;
+
+                    self.stack_pointer -= num_elements as usize;
+
+                    self.push(array)?;
+                }
             }
         }
         Ok(())
@@ -206,6 +219,16 @@ impl VirtualMachine {
 
         Ok(NULL)
     }
+
+    fn build_array(&self, from: usize, to: usize) -> Result<Object> {
+        let mut elements = Vec::with_capacity(to - from);
+
+        for i in from..to {
+            elements.push(self.stack[i].clone());
+        }
+
+        Ok(Object::Array(elements))
+    }
 }
 
 #[cfg(test)]
@@ -229,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Vec<TestCase> = vec![
+        let tests = vec![
             TestCase::new("1", Object::Integer(1)),
             TestCase::new("2", Object::Integer(2)),
             TestCase::new("1 + 2", Object::Integer(3)),
@@ -254,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_boolean_expressions() {
-        let tests: Vec<TestCase> = vec![
+        let tests = vec![
             TestCase::new("true", TRUE),
             TestCase::new("false", FALSE),
             TestCase::new("1 < 2", TRUE),
@@ -287,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_conditionals() {
-        let tests: Vec<TestCase> = vec![
+        let tests = vec![
             TestCase::new("if (true) { 10 }", Object::Integer(10)),
             TestCase::new("if (true) { 10 } else { 20 }", Object::Integer(10)),
             TestCase::new("if (false) { 10 } else { 20 }", Object::Integer(20)),
@@ -308,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_global_let_statements() {
-        let tests: Vec<TestCase> = vec![
+        let tests = vec![
             TestCase::new("let one = 1; one", Object::Integer(1)),
             TestCase::new("let one = 1; let two = 2; one + two", Object::Integer(3)),
             TestCase::new(
@@ -322,12 +345,37 @@ mod tests {
 
     #[test]
     fn test_string_expressions() {
-        let tests: Vec<TestCase> = vec![
+        let tests = vec![
             TestCase::new(r#""monkey""#, Object::String("monkey".to_string())),
             TestCase::new(r#""mon" + "key""#, Object::String("monkey".to_string())),
             TestCase::new(
                 r#""mon" + "key" + "banana""#,
                 Object::String("monkeybanana".to_string()),
+            ),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let tests = vec![
+            TestCase::new("[]", Object::Array(vec![])),
+            TestCase::new(
+                "[1, 2, 3]",
+                Object::Array(vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                ]),
+            ),
+            TestCase::new(
+                "[1 + 2, 3 * 4, 5 + 6]",
+                Object::Array(vec![
+                    Object::Integer(3),
+                    Object::Integer(12),
+                    Object::Integer(11),
+                ]),
             ),
         ];
 

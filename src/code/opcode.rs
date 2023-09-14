@@ -18,6 +18,7 @@ const JUMP: u8 = 15;
 const NULL: u8 = 16;
 const GET_GLOBAL: u8 = 17;
 const SET_GLOBAL: u8 = 18;
+const ARRAY: u8 = 19;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
@@ -53,6 +54,9 @@ pub enum Opcode {
     // Global variables
     GetGlobal,
     SetGlobal,
+
+    // Compound types
+    Array,
 }
 
 impl Opcode {
@@ -84,6 +88,8 @@ impl Opcode {
 
             Opcode::GetGlobal => Definition::new("GetGlobal", vec![2]),
             Opcode::SetGlobal => Definition::new("SetGlobal", vec![2]),
+
+            Opcode::Array => Definition::new("Array", vec![2]),
         }
     }
 }
@@ -117,6 +123,8 @@ impl From<Opcode> for u8 {
 
             Opcode::GetGlobal => GET_GLOBAL,
             Opcode::SetGlobal => SET_GLOBAL,
+
+            Opcode::Array => ARRAY,
         }
     }
 }
@@ -150,6 +158,8 @@ impl From<u8> for Opcode {
 
             GET_GLOBAL => Opcode::GetGlobal,
             SET_GLOBAL => Opcode::SetGlobal,
+
+            ARRAY => Opcode::Array,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }

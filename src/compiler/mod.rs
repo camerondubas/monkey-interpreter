@@ -124,6 +124,14 @@ impl Compiler {
                 let id = self.add_constant(Object::String(value));
                 self.emit(Opcode::Constant, &[id]);
             }
+            Expression::ArrayLiteral(elements) => {
+                let len = elements.len();
+                for element in elements {
+                    self.compile_expression(element)?;
+                }
+
+                self.emit(Opcode::Array, &[len as u16]);
+            }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
 
@@ -569,6 +577,58 @@ mod tests {
         ];
 
         run_compiler_tests(tests)
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let tests = vec![
+            TestCase {
+                input: "[]".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![make!(Opcode::Array, 0), make!(Opcode::Pop)],
+            },
+            TestCase {
+                input: "[1,2,3]".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Array, 3),
+                    make!(Opcode::Pop),
+                ],
+            },
+            TestCase {
+                input: "[1 + 2, 3 - 4, 5 * 6]".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                    Object::Integer(4),
+                    Object::Integer(5),
+                    Object::Integer(6),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Add),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Sub),
+                    make!(Opcode::Constant, 4),
+                    make!(Opcode::Constant, 5),
+                    make!(Opcode::Mul),
+                    make!(Opcode::Array, 3),
+                    make!(Opcode::Pop),
+                ],
+            },
+        ];
+
+        run_compiler_tests(tests);
     }
 
     fn run_compiler_tests(tests: Vec<TestCase>) {
