@@ -135,7 +135,7 @@ fn format_instruction(definition: &Definition, operands: &[u16]) -> String {
 
     match operand_count {
         0 => definition.name.to_string(),
-        1 => format!("{} {}", definition.name, operands[0].to_string().blue()),
+        1 => format!("{} {}", definition.name, operands[0]),
         _ => format!("ERROR: unhandled operand_count for {}", definition.name),
     }
 }
