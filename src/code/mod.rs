@@ -20,8 +20,8 @@ impl Instructions {
         self.0[offset] // TODO: Handle out of bounds / errors
     }
 
-    pub fn get_two_bytes(&self, offset: usize) -> u16 {
-        u16::from_be_bytes([self.get(offset), self.get(offset + 1)])
+    pub fn get_two_bytes(&self, offset: usize) -> usize {
+        u16::from_be_bytes([self.get(offset), self.get(offset + 1)]) as usize
     }
 
     // TODO: clean up setting at index

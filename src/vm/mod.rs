@@ -61,7 +61,7 @@ impl VirtualMachine {
                 Opcode::Constant => {
                     let const_index = self.instructions.get_two_bytes(instruction_pointer);
                     instruction_pointer += 2;
-                    self.push(self.constants[const_index as usize].clone())?;
+                    self.push(self.constants[const_index].clone())?;
                 }
                 Opcode::Add
                 | Opcode::Sub
@@ -98,14 +98,14 @@ impl VirtualMachine {
                     let condition = self.pop()?;
                     if !condition.is_truthy() {
                         // TODO: look into why we don't have to subtract 1 here
-                        instruction_pointer = jump_position as usize;
+                        instruction_pointer = jump_position;
                     }
                 }
                 Opcode::Jump => {
                     let jump_position = self.instructions.get_two_bytes(instruction_pointer);
 
                     // TODO: look into why we don't have to subtract 1 here
-                    instruction_pointer = jump_position as usize;
+                    instruction_pointer = jump_position;
                 }
                 Opcode::Null => self.push(NULL)?,
                 Opcode::GetGlobal => {
@@ -113,7 +113,7 @@ impl VirtualMachine {
                     instruction_pointer += 2;
 
                     let globals_ref = self.globals.borrow();
-                    let global_obj = globals_ref[global_index as usize].clone();
+                    let global_obj = globals_ref[global_index].clone();
                     drop(globals_ref);
 
                     self.push(global_obj)?;
@@ -125,11 +125,10 @@ impl VirtualMachine {
 
                     let mut globals_ref = self.globals.borrow_mut();
 
-                    globals_ref[global_index as usize] = global_obj;
+                    globals_ref[global_index] = global_obj;
                 }
                 Opcode::Array => {
-                    let num_elements =
-                        self.instructions.get_two_bytes(instruction_pointer) as usize;
+                    let num_elements = self.instructions.get_two_bytes(instruction_pointer);
                     instruction_pointer += 2;
 
                     let array =
@@ -140,8 +139,7 @@ impl VirtualMachine {
                     self.push(array)?;
                 }
                 Opcode::Hash => {
-                    let num_elements =
-                        self.instructions.get_two_bytes(instruction_pointer) as usize;
+                    let num_elements = self.instructions.get_two_bytes(instruction_pointer);
                     instruction_pointer += 2;
 
                     let hash =
