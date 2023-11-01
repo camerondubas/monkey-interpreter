@@ -10,6 +10,7 @@
 - docs: readme
 - feat: wasm
 - feat: web interface
+- feat(repl): allow printing globals
 - refactor(repl): move parsing to single method
 - feat(compiler): optimization levels
 - feat(compiler): compiler literal expressions as an optimization
