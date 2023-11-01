@@ -1,5 +1,5 @@
 pub mod error;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use self::error::{Result, VirtualMachineError};
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
     compiler::{Bytecode, Constants},
     object::{
         constants::{FALSE, NULL, TRUE},
-        Object,
+        HashKey, Object,
     },
 };
 
@@ -128,17 +128,28 @@ impl VirtualMachine {
                     globals_ref[global_index as usize] = global_obj;
                 }
                 Opcode::Array => {
-                    let num_elements = self.instructions.get_two_bytes(instruction_pointer);
+                    let num_elements =
+                        self.instructions.get_two_bytes(instruction_pointer) as usize;
                     instruction_pointer += 2;
 
-                    let array = self.build_array(
-                        self.stack_pointer - num_elements as usize,
-                        self.stack_pointer,
-                    )?;
+                    let array =
+                        self.build_array(self.stack_pointer - num_elements, self.stack_pointer)?;
 
-                    self.stack_pointer -= num_elements as usize;
+                    self.stack_pointer -= num_elements;
 
                     self.push(array)?;
+                }
+                Opcode::Hash => {
+                    let num_elements =
+                        self.instructions.get_two_bytes(instruction_pointer) as usize;
+                    instruction_pointer += 2;
+
+                    let hash =
+                        self.build_hash(self.stack_pointer - num_elements, self.stack_pointer)?;
+
+                    self.stack_pointer -= num_elements;
+
+                    self.push(hash)?;
                 }
             }
         }
@@ -229,12 +240,29 @@ impl VirtualMachine {
 
         Ok(Object::Array(elements))
     }
+
+    fn build_hash(&self, from: usize, to: usize) -> Result<Object> {
+        let mut hash: HashMap<HashKey, Object> = HashMap::with_capacity((to - from) / 2);
+
+        for i in (from..to).step_by(2) {
+            let key = self.stack[i].clone();
+            let value = self.stack[i + 1].clone();
+
+            let key = HashKey::from_obj(key.clone())
+                .map_err(|_| VirtualMachineError::InvalidHashKey(key))?;
+            hash.insert(key, value);
+        }
+
+        Ok(Object::Hash(hash))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
-    use crate::test::compile_from_source;
+    use crate::{object::HashKey, test::compile_from_source};
 
     struct TestCase {
         input: String,
@@ -376,6 +404,29 @@ mod tests {
                     Object::Integer(12),
                     Object::Integer(11),
                 ]),
+            ),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_hash_literals() {
+        let tests = vec![
+            TestCase::new("{}", Object::Hash(HashMap::new())),
+            TestCase::new(
+                "{1: 2, 2: 3}",
+                Object::Hash(HashMap::from([
+                    (HashKey::Integer(1), Object::Integer(2)),
+                    (HashKey::Integer(2), Object::Integer(3)),
+                ])),
+            ),
+            TestCase::new(
+                "{1 + 1: 2 * 2, 3 + 3: 4 * 4}",
+                Object::Hash(HashMap::from([
+                    (HashKey::Integer(2), Object::Integer(4)),
+                    (HashKey::Integer(6), Object::Integer(16)),
+                ])),
             ),
         ];
 

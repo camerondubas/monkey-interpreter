@@ -158,6 +158,16 @@ impl Compiler {
 
                 self.emit(Opcode::Array, &[len as u16]);
             }
+            Expression::HashLiteral(pairs) => {
+                let len = pairs.len();
+                for (key, value) in pairs {
+                    self.compile_expression(key)?;
+                    self.compile_expression(value)?;
+                }
+
+                let size = (len * 2) as u16;
+                self.emit(Opcode::Hash, &[size]);
+            }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
 
@@ -649,6 +659,63 @@ mod tests {
                     make!(Opcode::Constant, 5),
                     make!(Opcode::Mul),
                     make!(Opcode::Array, 3),
+                    make!(Opcode::Pop),
+                ],
+            },
+        ];
+
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_hash_literals() {
+        let tests = vec![
+            TestCase {
+                input: "{}".to_string(),
+                expected_constants: vec![],
+                expected_instructions: vec![make!(Opcode::Hash, 0), make!(Opcode::Pop)],
+            },
+            TestCase {
+                input: "{1: 2, 3: 4, 5: 6}".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                    Object::Integer(4),
+                    Object::Integer(5),
+                    Object::Integer(6),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Constant, 4),
+                    make!(Opcode::Constant, 5),
+                    make!(Opcode::Hash, 6),
+                    make!(Opcode::Pop),
+                ],
+            },
+            TestCase {
+                input: "{1: 2 + 3, 4: 5 * 6}".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                    Object::Integer(4),
+                    Object::Integer(5),
+                    Object::Integer(6),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Add),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Constant, 4),
+                    make!(Opcode::Constant, 5),
+                    make!(Opcode::Mul),
+                    make!(Opcode::Hash, 4),
                     make!(Opcode::Pop),
                 ],
             },

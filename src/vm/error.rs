@@ -11,6 +11,7 @@ pub enum VirtualMachineError {
     UnknownBooleanOperator(Opcode),
     UnsupportedMinus(Object),
     UnknownStringOperator(Opcode),
+    InvalidHashKey(Object),
 }
 
 impl Display for VirtualMachineError {
@@ -32,6 +33,9 @@ impl Display for VirtualMachineError {
             }
             VirtualMachineError::UnknownStringOperator(value) => {
                 write!(f, "Unknown string operator: {:?}", value)
+            }
+            VirtualMachineError::InvalidHashKey(object) => {
+                write!(f, "Invalid hash key: {:?}", object)
             }
         }
     }
