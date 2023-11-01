@@ -103,6 +103,13 @@ impl Display for Object {
     }
 }
 
+pub struct HashKeyError(pub Object);
+impl Display for HashKeyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} cannot be used as hash key", self.0)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum HashKey {
     Integer(i64),
@@ -110,13 +117,15 @@ pub enum HashKey {
     String(String),
 }
 
-impl HashKey {
-    pub fn from_obj(obj: Object) -> Result<HashKey, Object> {
+impl TryFrom<Object> for HashKey {
+    type Error = HashKeyError;
+
+    fn try_from(obj: Object) -> Result<Self, Self::Error> {
         let key = match obj {
             Object::Integer(integer) => HashKey::Integer(integer),
             Object::Boolean(boolean) => HashKey::Boolean(boolean),
             Object::String(string) => HashKey::String(string),
-            _ => return Err(unhashable_type_error(obj)),
+            _ => return Err(HashKeyError(obj)),
         };
 
         Ok(key)
@@ -131,8 +140,4 @@ impl Display for HashKey {
             HashKey::String(string) => write!(f, "\"{}\"", string),
         }
     }
-}
-
-fn unhashable_type_error(obj: Object) -> Object {
-    Object::Error(format!("unusable as hash key: {}", obj.get_type()))
 }

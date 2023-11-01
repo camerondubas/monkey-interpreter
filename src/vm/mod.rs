@@ -249,11 +249,9 @@ impl VirtualMachine {
         let mut hash: HashMap<HashKey, Object> = HashMap::with_capacity((to - from) / 2);
 
         for i in (from..to).step_by(2) {
-            let key = self.stack[i].clone();
+            let key_obj = self.stack[i].clone();
             let value = self.stack[i + 1].clone();
-
-            let key = HashKey::from_obj(key.clone())
-                .map_err(|_| VirtualMachineError::InvalidHashKey(key))?;
+            let key = HashKey::try_from(key_obj)?;
             hash.insert(key, value);
         }
 
@@ -284,9 +282,7 @@ impl VirtualMachine {
     }
 
     fn execute_hash_index(&self, hash: HashMap<HashKey, Object>, idx: Object) -> Result<Object> {
-        let key =
-            HashKey::from_obj(idx.clone()).map_err(|_| VirtualMachineError::InvalidHashKey(idx))?;
-
+        let key = HashKey::try_from(idx)?;
         let val = hash.get(&key).unwrap_or(&NULL).clone();
         Ok(val)
     }

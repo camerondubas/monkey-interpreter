@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::{code::Opcode, object::Object};
+use crate::{
+    code::Opcode,
+    object::{HashKeyError, Object},
+};
 
 pub type Result<T = ()> = std::result::Result<T, VirtualMachineError>;
 pub enum VirtualMachineError {
@@ -42,5 +45,11 @@ impl Display for VirtualMachineError {
                 write!(f, "Invalid Index: {:?}", object)
             }
         }
+    }
+}
+
+impl From<HashKeyError> for VirtualMachineError {
+    fn from(err: HashKeyError) -> Self {
+        VirtualMachineError::InvalidHashKey(err.0)
     }
 }

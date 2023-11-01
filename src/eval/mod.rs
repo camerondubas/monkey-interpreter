@@ -269,9 +269,9 @@ fn eval_hash_literal(
             return value;
         }
 
-        match HashKey::from_obj(key) {
+        match HashKey::try_from(key) {
             Ok(hash_key) => pairs.insert(hash_key, value),
-            Err(err) => return err,
+            Err(e) => return Object::Error(e.to_string()),
         };
     }
 
@@ -296,9 +296,9 @@ fn eval_index(left: Expression, idx: Expression, environment: Rc<RefCell<Environ
             }
         }
         Object::Hash(pairs) => {
-            let key = match HashKey::from_obj(idx_obj) {
+            let key = match HashKey::try_from(idx_obj) {
                 Ok(key) => key,
-                Err(e) => return e,
+                Err(e) => return Object::Error(e.to_string()),
             };
 
             match pairs.get(&key) {
