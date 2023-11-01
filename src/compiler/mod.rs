@@ -168,6 +168,11 @@ impl Compiler {
                 let size = (len * 2) as u16;
                 self.emit(Opcode::Hash, &[size]);
             }
+            Expression::Index(left, index) => {
+                self.compile_expression(*left)?;
+                self.compile_expression(*index)?;
+                self.emit(Opcode::Index, &[]);
+            }
             _ => return Err(CompilerError::UnhandledExpression(expression)),
         }
 
@@ -716,6 +721,54 @@ mod tests {
                     make!(Opcode::Constant, 5),
                     make!(Opcode::Mul),
                     make!(Opcode::Hash, 4),
+                    make!(Opcode::Pop),
+                ],
+            },
+        ];
+
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let tests = vec![
+            TestCase {
+                input: "[1, 2, 3][1 + 1]".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                    Object::Integer(1),
+                    Object::Integer(1),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Array, 3),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Constant, 4),
+                    make!(Opcode::Add),
+                    make!(Opcode::Index),
+                    make!(Opcode::Pop),
+                ],
+            },
+            TestCase {
+                input: "{1: 2}[2 - 1]".to_string(),
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(2),
+                    Object::Integer(1),
+                ],
+                expected_instructions: vec![
+                    make!(Opcode::Constant, 0),
+                    make!(Opcode::Constant, 1),
+                    make!(Opcode::Hash, 2),
+                    make!(Opcode::Constant, 2),
+                    make!(Opcode::Constant, 3),
+                    make!(Opcode::Sub),
+                    make!(Opcode::Index),
                     make!(Opcode::Pop),
                 ],
             },

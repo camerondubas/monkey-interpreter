@@ -20,6 +20,7 @@ const GET_GLOBAL: u8 = 17;
 const SET_GLOBAL: u8 = 18;
 const ARRAY: u8 = 19;
 const HASH: u8 = 20;
+const INDEX: u8 = 21;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
@@ -59,6 +60,9 @@ pub enum Opcode {
     // Compound types
     Array,
     Hash,
+
+    // Index operator
+    Index,
 }
 
 impl Opcode {
@@ -93,6 +97,8 @@ impl Opcode {
 
             Opcode::Array => Definition::new("Array", vec![2]),
             Opcode::Hash => Definition::new("Hash", vec![2]),
+
+            Opcode::Index => Definition::new("Index", vec![]),
         }
     }
 }
@@ -129,6 +135,8 @@ impl From<Opcode> for u8 {
 
             Opcode::Array => ARRAY,
             Opcode::Hash => HASH,
+
+            Opcode::Index => INDEX,
         }
     }
 }
@@ -165,6 +173,8 @@ impl From<u8> for Opcode {
 
             ARRAY => Opcode::Array,
             HASH => Opcode::Hash,
+
+            INDEX => Opcode::Index,
 
             _ => panic!("Opcode cannot be made from u8:{}.", opcode),
         }

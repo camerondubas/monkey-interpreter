@@ -149,6 +149,12 @@ impl VirtualMachine {
 
                     self.push(hash)?;
                 }
+                Opcode::Index => {
+                    let idx = self.pop()?;
+                    let obj = self.pop()?;
+
+                    self.execute_index_expression(obj, idx)?;
+                }
             }
         }
         Ok(())
@@ -252,6 +258,37 @@ impl VirtualMachine {
         }
 
         Ok(Object::Hash(hash))
+    }
+
+    fn execute_index_expression(&mut self, obj: Object, idx: Object) -> Result<Object> {
+        let value = match obj {
+            Object::Array(arr) => self.execute_array_index(arr, idx)?,
+            Object::Hash(hash) => self.execute_hash_index(hash, idx)?,
+            _ => Err(VirtualMachineError::InvalidIndex(obj))?,
+        };
+
+        self.push(value)?;
+
+        Ok(NULL)
+    }
+
+    fn execute_array_index(&self, arr: Vec<Object>, idx: Object) -> Result<Object> {
+        match idx {
+            Object::Integer(num) => {
+                let num = num as usize;
+                let val = arr.get(num).unwrap_or(&NULL).clone();
+                Ok(val)
+            }
+            _ => Err(VirtualMachineError::InvalidIndex(NULL)),
+        }
+    }
+
+    fn execute_hash_index(&self, hash: HashMap<HashKey, Object>, idx: Object) -> Result<Object> {
+        let key =
+            HashKey::from_obj(idx.clone()).map_err(|_| VirtualMachineError::InvalidHashKey(idx))?;
+
+        let val = hash.get(&key).unwrap_or(&NULL).clone();
+        Ok(val)
     }
 }
 
@@ -426,6 +463,24 @@ mod tests {
                     (HashKey::Integer(6), Object::Integer(16)),
                 ])),
             ),
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let tests = vec![
+            TestCase::new("[1, 2, 3][1]", Object::Integer(2)),
+            TestCase::new("[1, 2, 3][0 + 2]", Object::Integer(3)),
+            TestCase::new("[[1, 2, 3]][0][0]", Object::Integer(1)),
+            TestCase::new("[][0]", NULL),
+            TestCase::new("[1, 2, 3][99]", NULL),
+            TestCase::new("[1][-1]", NULL),
+            TestCase::new("{1: 1, 2: 2}[1]", Object::Integer(1)),
+            TestCase::new("{1: 1, 2: 2}[2]", Object::Integer(2)),
+            TestCase::new("{1: 1}[0]", NULL),
+            TestCase::new("{}[0]", NULL),
         ];
 
         run_vm_tests(tests);

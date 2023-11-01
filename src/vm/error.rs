@@ -12,6 +12,7 @@ pub enum VirtualMachineError {
     UnsupportedMinus(Object),
     UnknownStringOperator(Opcode),
     InvalidHashKey(Object),
+    InvalidIndex(Object),
 }
 
 impl Display for VirtualMachineError {
@@ -36,6 +37,9 @@ impl Display for VirtualMachineError {
             }
             VirtualMachineError::InvalidHashKey(object) => {
                 write!(f, "Invalid hash key: {:?}", object)
+            }
+            VirtualMachineError::InvalidIndex(object) => {
+                write!(f, "Invalid Index: {:?}", object)
             }
         }
     }
